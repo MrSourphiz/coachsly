@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coachsly Prototype Compact Height</title>
+    <style>
+        body { background-color: #172554; color: #F9FAFB; font-family: Roboto, sans-serif; margin: 0; }
+        .header { display: flex; justify-content: space-between; padding: 16px; align-items: center; }
+        .greeting { font-weight: bold; font-size: 20px; }
+        .notification { position: relative; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
+        .notification .badge { position: absolute; top: -4px; right: -4px; width: 10px; height: 10px; background-color: #991B1B; border-radius: 50%; }
+        .card { background-color: #2a4066; padding: 16px; margin: 8px; border-radius: 8px; }
+        .button-primary { background-color: #991B1B; color: #F9FAFB; padding: 12px; border-radius: 8px; text-align: center; box-shadow: 0 1px 2px #172554; }
+        .button-primary:hover, .button-primary:active { background-color: #7F1D1B; }
+        .button-secondary { background-color: #6B7280; color: #991B1B; padding: 8px; border-radius: 8px; text-align: center; }
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; background-color: #2a4066; height: 72px; display: flex; justify-content: space-around; align-items: center; }
+        .nav-icon { width: 64px; height: 64px; display: flex; justify-content: center; align-items: center; font-size: 32px; }
+        .nav-active { background-color: #991B1B; border-radius: 8px; padding: 4px; display: flex; align-items: center; min-width: 120px; height: 56px; }
+        .nav-active span { margin-left: 8px; font-size: 16px; font-weight: bold; }
+    </style>
+</head>
+<body>
+<!-- Dashboard Screen -->
+<div class="header">
+    <div class="greeting">Здравствуй, тренер Иван</div>
+    <div class="notification">🔔<span class="badge"></span></div>
+</div>
+<div class="card">Записи на сегодня: 5 <div class="button-secondary">Подробнее</div></div>
+<div class="card">Оплаты: 10,000 руб <div class="button-secondary">История</div></div>
+<div class="card">Тренировочные программы <div class="button-secondary">Создать</div></div>
+<div class="button-primary" style="width: 80%; margin: 16px auto;">Отправить программы клиентам</div>
+<div class="bottom-nav">
+    <div class="nav-active"><div style="font-size: 32px;">🏋️</div><span>Программы тренировок</span></div>
+    <div class="nav-icon">📅</div>
+    <div class="nav-icon">👥</div>
+    <div class="nav-icon">⚙️</div>
+</div>
+
+<!-- Programs Screen (hidden by default) -->
+<div style="display: none;">
+    <div class="header">
+        <div class="greeting">Здравствуй, тренер Иван</div>
+        <div class="notification">🔔<span class="badge"></span></div>
+    </div>
+    <div style="padding: 16px;">Тренировочные программы</div>
+    <div class="card">Бег для начинающих <div class="button-secondary">Редактировать</div></div>
+    <div class="button-secondary" style="width: 48px; height: 48px; line-height: 48px; margin: 16px;">+</div>
+    <!-- Modal (hidden by default) -->
+    <div style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #2a4066; padding: 16px; border-radius: 8px;">
+        <input placeholder="Название" style="background: none; border: none; color: #F9FAFB; margin: 8px 0;">
+        <input placeholder="Описание" style="background: none; border: none; color: #F9FAFB; margin: 8px 0;">
+        <input placeholder="Упражнения" style="background: none; border: none; color: #F9FAFB; margin: 8px 0;">
+        <div class="button-primary">Сохранить</div>
+    </div>
+    <div class="bottom-nav">
+        <div class="nav-active"><div style="font-size: 32px;">🏋️</div><span>Программы тренировок</span></div>
+        <div class="nav-icon">📅</div>
+        <div class="nav-icon">👥</div>
+        <div class="nav-icon">⚙️</div>
+    </div>
+</div>
+
+<!-- Clients Screen (hidden by default) -->
+<div style="display: none;">
+    <div class="header">
+        <div class="greeting">Здравствуй, тренер Иван</div>
+        <div class="notification">🔔<span class="badge"></span></div>
+    </div>
+    <div style="padding: 16px;">Клиенты</div>
+    <div class="card">Иван Иванов <span style="color: green">●</span> <div class="button-secondary">Подробнее</div></div>
+    <div class="button-primary" style="width: 80%; margin: 16px;">Добавить клиента</div>
+    <div class="bottom-nav">
+        <div class="nav-icon">🏋️</div>
+        <div class="nav-icon">📅</div>
+        <div class="nav-active"><div style="font-size: 32px;">👥</div><span>Мои клиенты</span></div>
+        <div class="nav-icon">⚙️</div>
+    </div>
+</div>
+
+<!-- Notifications Screen (hidden by default) -->
+<div style="display: none;">
+    <div class="header">
+        <div class="greeting">Здравствуй, тренер Иван</div>
+        <div class="notification" style="color: #991B1B;">🔔<span class="badge"></span></div>
+    </div>
+    <div style="padding: 16px;">Уведомления</div>
+    <div class="card">Иван Иванов оплатил тренировку: 2,000 руб</div>
+    <div class="card">Анна Петрова отменила тренировку на 15:00</div>
+    <div class="button-primary" style="width: 80%; margin: 16px;">Очистить уведомления</div>
+    <div class="bottom-nav">
+        <div class="nav-icon">🏋️</div>
+        <div class="nav-icon">📅</div>
+        <div class="nav-icon">👥</div>
+        <div class="nav-icon">⚙️</div>
+    </div>
+</div>
+</body>
+</html>
