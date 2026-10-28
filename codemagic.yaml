@@ -8,10 +8,12 @@ workflows:
       xcode: latest
       cocoapods: default
       groups:
-        - supabase_dev        # SUPABASE_URL, SUPABASE_ANON_KEY
+        - supabase_dev        # SUPABASE_URL, SUPABASE_ANON_KEY, FIREBASE_OPTIONS
     scripts:
       - name: Get packages
         script: flutter pub get
+      - name: Restore firebase_options.dart
+        script: echo "$FIREBASE_OPTIONS" | base64 --decode > lib/firebase_options.dart
       - name: Pod install
         script: cd ios && pod install
       - name: Build for simulator (debug)
@@ -25,3 +27,42 @@ workflows:
           zip -r Runner-simulator.zip Runner.app
     artifacts:
       - build/ios/iphonesimulator/Runner-simulator.zip
+
+  ios-dev-device:
+    name: iOS Dev (device)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: codemagic_api_key
+    environment:
+      flutter: 3.29.3
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: development   # или ad_hoc
+        bundle_identifier: com.example.coachsly   # заменить на свой перед сборкой на устройство
+      groups:
+        - supabase_dev
+    scripts:
+      - name: Get packages
+        script: flutter pub get
+      - name: Restore firebase_options.dart
+        script: echo "$FIREBASE_OPTIONS" | base64 --decode > lib/firebase_options.dart
+      - name: Pod install
+        script: cd ios && pod install
+      - name: Apply signing profiles
+        script: xcode-project use-profiles
+      - name: Build IPA
+        script: |
+          flutter build ipa --profile \
+            --export-options-plist=/Users/builder/export_options.plist \
+            --dart-define=SUPABASE_URL=$SUPABASE_URL \
+            --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
+            --dart-define=ENV=dev
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      email:
+        recipients:
+          - zabava.mn@gmail.com   # ваш email
