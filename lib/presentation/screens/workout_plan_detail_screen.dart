@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:coachsly/domain/entities/workout_plan_model.dart';
-import 'package:coachsly/core/constants/colors.dart';
+import 'package:formeo/domain/entities/workout_plan_model.dart';
+import 'package:formeo/core/constants/colors.dart';
 
 class WorkoutPlanDetailScreen extends StatelessWidget {
   final WorkoutPlan plan;
@@ -75,7 +75,7 @@ class WorkoutPlanDetailScreen extends StatelessWidget {
                   const SizedBox(height: 4),
                   if (plan.type != null && plan.type!.isNotEmpty)
                     Text(
-                      plan.type!,
+                      plan.typeLabel,
                       style: TextStyle(
                         fontSize: 16,
                         color: AppColors.colorGrey,
@@ -122,8 +122,8 @@ class WorkoutPlanDetailScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            _infoTile('Тип тренировки', plan.type ?? 'Не указан'),
-            _infoTile('Длительность', '${plan.duration ?? 0} дней'),
+            _infoTile('Тип тренировки', plan.typeLabel),
+            _infoTile('Длительность', _durationLabel(plan.duration)),
             _infoTile('Количество тренировочных дней', '${plan.days.length}'),
             if (plan.createdAt != null)
               _infoTile('Создан', _formatDate(plan.createdAt!)),
@@ -431,6 +431,19 @@ class WorkoutPlanDetailScreen extends StatelessWidget {
 
   String _formatDate(DateTime date) {
     return '${date.day}.${date.month}.${date.year}';
+  }
+
+  /// duration хранится в днях — добавляем склонение день/дня/дней
+  /// (тот же алгоритм, что и в universal_card.dart).
+  String _durationLabel(int? duration) {
+    if (duration == null) return 'Не указана';
+    final mod10 = duration % 10;
+    final mod100 = duration % 100;
+    if (mod10 == 1 && mod100 != 11) return '$duration день';
+    if ([2, 3, 4].contains(mod10) && ![12, 13, 14].contains(mod100)) {
+      return '$duration дня';
+    }
+    return '$duration дней';
   }
 
   Color _getItemTypeColor(WorkoutItemType type) {

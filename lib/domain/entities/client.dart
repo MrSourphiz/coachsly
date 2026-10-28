@@ -1,127 +1,144 @@
 import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart';
+import 'package:formeo/core/constants/messenger.dart';
 
 class Client extends Equatable {
   final String id;
+
+  /// ID в мессенджере: > 0 — Telegram, < 0 — MAX (user_id со знаком минус).
   final int telegramUserId;
   final String trainerId;
-  final String first_name;
-  final String last_name;
+  final String firstName;
+  final String? lastName;
+  final String? username;
+  final String defaultSessionType; // 'single' | 'block' | 'subscription'
   final String status;
   final String? notes;
-  final String? phoneNumber;
+  final bool fatsecretEnabled;
+  final bool isDemo;
   final DateTime createdAt;
   final DateTime updatedAt;
-  final bool hasActiveProgram;
-  final String? assignedProgramId;
-  final List<String>? trainingDays;
-  final int? durationWeeks;
 
   const Client({
     required this.id,
     required this.telegramUserId,
     required this.trainerId,
-    required this.first_name,
-    required this.last_name,
+    required this.firstName,
+    this.lastName,
+    this.username,
+    required this.defaultSessionType,
     required this.status,
     this.notes,
-    this.phoneNumber,
+    this.fatsecretEnabled = true,
+    this.isDemo = false,
     required this.createdAt,
     required this.updatedAt,
-    required this.hasActiveProgram,
-    required this.assignedProgramId,
-    required this.trainingDays,
-    required this.durationWeeks,
   });
 
   factory Client.fromJson(Map<String, dynamic> json) {
     try {
-      final status = json['status'] as String? ?? 'pending';
-      if (json['telegram_user_id'] == null) {
-        throw FormatException('telegram_user_id is null in JSON: $json');
-      }
-      if (json['trainer_id'] == null) {
-        throw FormatException('trainer_id is null in JSON: $json');
-      }
-      if (json['created_at'] == null || json['updated_at'] == null) {
-        throw FormatException('created_at or updated_at is null in JSON: $json');
-      }
-      if (json['first_name'] == null) {
-        throw FormatException('first_name is null in JSON: $json');
-      }
-      if (json['last_name'] == null) {
-        throw FormatException('last_name is null in JSON: $json');
-      }
       return Client(
         id: json['id'] as String,
-        telegramUserId: json['telegram_user_id'] ?? 0,
+        telegramUserId: (json['telegram_user_id'] as num).toInt(),
         trainerId: json['trainer_id'] as String,
-        status: status,
+        firstName: json['first_name'] as String? ?? '',
+        lastName: json['last_name'] as String?,
+        username: json['username'] as String?,
+        defaultSessionType: json['default_session_type'] as String? ?? 'single',
+        status: json['status'] as String? ?? 'active',
         notes: json['notes'] as String?,
-        first_name: json['first_name'] as String,
-        last_name: json['last_name'] as String,
-        phoneNumber: json['phone_number'] as String?,
+        fatsecretEnabled: json['fatsecret_enabled'] as bool? ?? true,
+        isDemo: json['is_demo'] as bool? ?? false,
         createdAt: DateTime.parse(json['created_at'] as String),
         updatedAt: DateTime.parse(json['updated_at'] as String),
-        hasActiveProgram: json['hasActiveProgram'] ?? false,
-        assignedProgramId: json['assignedProgramId'] as String?,
-        trainingDays: (json['trainingDays'] as List<dynamic>?)
-            ?.cast<String>()
-            ?? [],
-        durationWeeks: json['hasActiveProgram'] ?? 0,
       );
     } catch (e) {
-      print('Client.fromJson error: $e');
+      debugPrint('Client.fromJson error: $e');
       rethrow;
     }
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'trainer_id': trainerId,
-      'first_name': first_name,
-      'last_name': last_name,
-      'status': status,
-      'notes': notes,
-      'phone_number': phoneNumber,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
-      'hasActiveProgram': hasActiveProgram,
-      'assignedProgramId': assignedProgramId,
-      'trainingDays': trainingDays,
-      'durationWeeks': durationWeeks,
-    };
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'telegram_user_id': telegramUserId,
+    'trainer_id': trainerId,
+    'first_name': firstName,
+    'last_name': lastName,
+    'username': username,
+    'default_session_type': defaultSessionType,
+    'status': status,
+    'notes': notes,
+    'fatsecret_enabled': fatsecretEnabled,
+    'is_demo': isDemo,
+    'created_at': createdAt.toIso8601String(),
+    'updated_at': updatedAt.toIso8601String(),
+  };
+
+  Client copyWith({
+    String? id,
+    int? telegramUserId,
+    String? trainerId,
+    String? firstName,
+    String? lastName,
+    String? username,
+    String? defaultSessionType,
+    String? status,
+    String? notes,
+    bool? fatsecretEnabled,
+    bool? isDemo,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return Client(
+      id: id ?? this.id,
+      telegramUserId: telegramUserId ?? this.telegramUserId,
+      trainerId: trainerId ?? this.trainerId,
+      firstName: firstName ?? this.firstName,
+      lastName: lastName ?? this.lastName,
+      username: username ?? this.username,
+      defaultSessionType: defaultSessionType ?? this.defaultSessionType,
+      status: status ?? this.status,
+      notes: notes ?? this.notes,
+      fatsecretEnabled: fatsecretEnabled ?? this.fatsecretEnabled,
+      isDemo: isDemo ?? this.isDemo,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
   }
+
+  String get fullName => [firstName, lastName]
+      .where((s) => s != null && s.isNotEmpty)
+      .join(' ');
+
+  bool get isActive => status == 'active';
+  bool get isPaused => status == 'paused';
+  bool get isDeleted => status == 'deleted';
+
+  /// Мессенджер клиента — определяется знаком telegram_user_id.
+  Messenger get messenger => messengerFromTelegramUserId(telegramUserId);
+  bool get isMax => messenger == Messenger.max;
+
+  /// user_id в мессенджере (без служебного знака).
+  int get messengerUserId => telegramUserId.abs();
 
   @override
   List<Object?> get props => [
     id,
+    telegramUserId,
     trainerId,
-    first_name,
-    last_name,
+    firstName,
+    lastName,
+    username,
+    defaultSessionType,
     status,
     notes,
-    phoneNumber,
+    fatsecretEnabled,
+    isDemo,
     createdAt,
     updatedAt,
-    hasActiveProgram,
-    assignedProgramId,
-    trainingDays,
-    durationWeeks,
   ];
 
   @override
   String toString() =>
-      'Client('
-          'id: $id, '
-          'trainerId: $trainerId, '
-          'first_name: $first_name, '
-          'last_name: $last_name, '
-          'status: $status, '
-          'phoneNumber: $phoneNumber, '
-          'notes: $notes,'
-          'hasActiveProgram: $hasActiveProgram,'
-          'assignedProgramId: $assignedProgramId,'
-          'trainingDays: $trainingDays,'
-          'durationWeeks: $durationWeeks)';
+      'Client(id: $id, name: $fullName, messenger: ${messenger.label}, status: $status, defaultSessionType: $defaultSessionType, notes: $notes, fatsecretEnabled: $fatsecretEnabled, isDemo: $isDemo)';
 }

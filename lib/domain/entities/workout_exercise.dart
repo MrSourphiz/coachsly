@@ -1,4 +1,4 @@
-import 'package:coachsly/domain/entities/exercise_model.dart';
+import 'package:formeo/domain/entities/exercise_model.dart';
 
 class WorkoutExercise {
   final String id;

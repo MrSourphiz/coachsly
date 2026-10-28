@@ -1,5 +1,5 @@
-import 'package:equatable/equatable.dart';
-import 'package:coachsly/domain/entities/exercise.dart';
+
+import 'package:formeo/domain/entities/exercise.dart';
 
 class WorkoutDay {
   final String weekday;

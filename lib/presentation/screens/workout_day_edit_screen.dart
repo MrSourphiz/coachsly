@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:coachsly/presentation/screens/add_exercise_screen.dart';
-import 'package:coachsly/domain/entities/workout_plan_model.dart';
-import 'package:coachsly/presentation/screens/exercise_editor_screen.dart';
+import 'package:formeo/presentation/screens/add_exercise_screen.dart';
+import 'package:formeo/domain/entities/workout_plan_model.dart';
+import 'package:formeo/presentation/screens/exercise_editor_screen.dart';
 
 class WorkoutDayEditScreen extends StatefulWidget {
   final String planName;
@@ -62,6 +61,7 @@ class _WorkoutDayEditScreenState extends State<WorkoutDayEditScreen> {
     );
 
     if (result != null && result is WorkoutItem) {
+      if (!mounted) return;
       setState(() {
         _items.add(result);
       });
@@ -74,6 +74,13 @@ class _WorkoutDayEditScreenState extends State<WorkoutDayEditScreen> {
     _items = List.from(widget.workoutDay.items);
     _descriptionController.text = widget.workoutDay.description;
     _restController.text = widget.workoutDay.restBetweenExercises.toString();
+  }
+
+  @override
+  void dispose() {
+    _descriptionController.dispose();
+    _restController.dispose();
+    super.dispose();
   }
 
   // Методы для получения стилей в зависимости от типа упражнения
@@ -281,7 +288,9 @@ class _WorkoutDayEditScreenState extends State<WorkoutDayEditScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${exercise.exercise.bodyPart ?? ''} ${exercise.exercise.bodyPart != null ? '•' : ''} ${exercise.exercise.difficultyLevel ?? ''}',
+                        [exercise.exercise.bodyPart, exercise.exercise.difficultyLevel]
+                            .where((s) => s.isNotEmpty)
+                            .join(' • '),
                         style: const TextStyle(fontSize: 12),
                       ),
                       const SizedBox(height: 4),
@@ -316,6 +325,7 @@ class _WorkoutDayEditScreenState extends State<WorkoutDayEditScreen> {
                           );
 
                           if (updated != null && updated is WorkoutExercise) {
+                            if (!mounted) return;
                             setState(() {
                               _items[itemIndex].exercises[exerciseIndex] = updated;
                             });
@@ -346,7 +356,7 @@ class _WorkoutDayEditScreenState extends State<WorkoutDayEditScreen> {
                 decoration: BoxDecoration(
                   border: Border(
                     top: BorderSide(
-                      color: borderColor.withOpacity(0.3),
+                      color: borderColor.withValues(alpha: 0.3),
                       width: 1,
                     ),
                   ),
@@ -372,7 +382,7 @@ class _WorkoutDayEditScreenState extends State<WorkoutDayEditScreen> {
                 decoration: BoxDecoration(
                   border: Border(
                     top: BorderSide(
-                      color: borderColor.withOpacity(0.3),
+                      color: borderColor.withValues(alpha: 0.3),
                       width: 1,
                     ),
                   ),

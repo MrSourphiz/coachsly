@@ -35,6 +35,7 @@ class _AddTrainingModalState extends State<AddTrainingModal> {
       lastDate: now.add(Duration(days: 365)),
     );
     if (picked != null) {
+      if (!mounted) return;
       setState(() {
         selectedDate = picked;
       });
@@ -47,6 +48,7 @@ class _AddTrainingModalState extends State<AddTrainingModal> {
       initialTime: TimeOfDay.now(),
     );
     if (picked != null) {
+      if (!mounted) return;
       setState(() {
         selectedTime = picked;
       });

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:coachsly/ui/widgets/circuit_training_editor.dart';
-import 'package:coachsly/ui/widgets/superset_training_editor.dart';
-import 'package:coachsly/ui/widgets/triset_training_editor.dart';
-import 'package:coachsly/ui/widgets/single_exercise_editor.dart';
-import 'package:coachsly/ui/widgets/warmup_exercise_editor.dart';
+
+import 'package:formeo/ui/widgets/circuit_training_editor.dart';
+import 'package:formeo/ui/widgets/superset_training_editor.dart';
+import 'package:formeo/ui/widgets/triset_training_editor.dart';
+import 'package:formeo/ui/widgets/single_exercise_editor.dart';
+import 'package:formeo/ui/widgets/warmup_exercise_editor.dart';
 
 enum WorkoutExecutionType { warmup, single, superset, triset, circuit, cooldown }
 

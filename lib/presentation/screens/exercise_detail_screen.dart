@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:coachsly/domain/entities/exercise.dart';
+import 'package:formeo/domain/entities/exercise.dart';
 
 class ExerciseDetailScreen extends StatelessWidget {
   final Exercise exercise;
 
   const ExerciseDetailScreen({super.key, required this.exercise});
+
+  // Поля Exercise — non-nullable String, при парсинге JSON отсутствующие
+  // значения превращаются в ''. Раньше здесь стояло `value ?? 'fallback'`,
+  // что анализатор справедливо помечал как dead_null_aware_expression —
+  // null там появиться не может. Но исходный смысл (показать заглушку,
+  // если поле пустое) был верным, поэтому проверяем isEmpty, а не null.
+  static String _orFallback(String value, String fallback) =>
+      value.isEmpty ? fallback : value;
 
   // Метод для получения иконки для типа оборудования
   IconData _getEquipmentIcon(String equipment) {
@@ -88,7 +96,7 @@ class ExerciseDetailScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          ex.title ?? 'Упражнение',
+          _orFallback(ex.title, 'Упражнение'),
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: theme.colorScheme.primary,
@@ -115,7 +123,7 @@ class ExerciseDetailScreen extends StatelessWidget {
                   children: [
                     // Заголовок
                     Text(
-                      ex.title ?? 'Без названия',
+                      _orFallback(ex.title, 'Без названия'),
                       style: theme.textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: textColor, // Изменен цвет текста
@@ -136,25 +144,25 @@ class ExerciseDetailScreen extends StatelessWidget {
                         _buildInfoItem(
                           icon: Icons.category,
                           label: 'Категория',
-                          value: ex.category ?? 'Не указана',
+                          value: _orFallback(ex.category, 'Не указана'),
                           context: context,
                           backgroundColor: blockBackgroundColor,
                           textColor: textColor,
                         ),
                         // Мышечная группа
                         _buildInfoItem(
-                          icon: _getMuscleGroupIcon(ex.bodyPart ?? ''),
+                          icon: _getMuscleGroupIcon(ex.bodyPart),
                           label: 'Мышечная группа',
-                          value: ex.bodyPart ?? 'Не указана',
+                          value: _orFallback(ex.bodyPart, 'Не указана'),
                           context: context,
                           backgroundColor: blockBackgroundColor,
                           textColor: textColor,
                         ),
                         // Оборудование
                         _buildInfoItem(
-                          icon: _getEquipmentIcon(ex.equipment ?? ''),
+                          icon: _getEquipmentIcon(ex.equipment),
                           label: 'Оборудование',
-                          value: ex.equipment ?? 'Не указано',
+                          value: _orFallback(ex.equipment, 'Не указано'),
                           context: context,
                           backgroundColor: blockBackgroundColor,
                           textColor: textColor,
@@ -162,11 +170,11 @@ class ExerciseDetailScreen extends StatelessWidget {
                         // Сложность
                         Container(
                           decoration: BoxDecoration(
-                            color: _getDifficultyColor(ex.difficultyLevel ?? '')
-                                .withOpacity(0.1),
+                            color: _getDifficultyColor(ex.difficultyLevel)
+                                .withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: _getDifficultyColor(ex.difficultyLevel ?? ''),
+                              color: _getDifficultyColor(ex.difficultyLevel),
                               width: 1,
                             ),
                           ),
@@ -178,7 +186,7 @@ class ExerciseDetailScreen extends StatelessWidget {
                             children: [
                               Icon(
                                 Icons.speed,
-                                color: _getDifficultyColor(ex.difficultyLevel ?? ''),
+                                color: _getDifficultyColor(ex.difficultyLevel),
                                 size: 18,
                               ),
                               const SizedBox(width: 8),
@@ -193,9 +201,9 @@ class ExerciseDetailScreen extends StatelessWidget {
                                       ),
                                     ),
                                     Text(
-                                      ex.difficultyLevel ?? 'Не указана',
+                                      _orFallback(ex.difficultyLevel, 'Не указана'),
                                       style: theme.textTheme.bodyMedium?.copyWith(
-                                        color: _getDifficultyColor(ex.difficultyLevel ?? ''),
+                                        color: _getDifficultyColor(ex.difficultyLevel),
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
@@ -213,7 +221,7 @@ class ExerciseDetailScreen extends StatelessWidget {
             ),
 
             // Раздел с описанием
-            if (ex.description?.isNotEmpty == true) ...[
+            if (ex.description.isNotEmpty) ...[
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Text(
@@ -235,7 +243,7 @@ class ExerciseDetailScreen extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Text(
-                    ex.description!,
+                    ex.description,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       height: 1.5,
                       color: textColor, // Изменен цвет текста
@@ -283,7 +291,7 @@ class ExerciseDetailScreen extends StatelessWidget {
                 Text(
                   label,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: textColor.withOpacity(0.8), // Изменен цвет текста
+                    color: textColor.withValues(alpha: 0.8), // Изменен цвет текста
                   ),
                 ),
                 Text(

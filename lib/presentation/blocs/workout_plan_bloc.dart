@@ -1,8 +1,9 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:coachsly/core/exceptions/app_exception.dart';
-import 'package:coachsly/domain/entities/workout_plan_model.dart';
-import 'package:coachsly/domain/usecases/get_workout_plans.dart';
-import 'package:coachsly/domain/usecases/create_workout_plan.dart';
+import 'package:flutter/foundation.dart';
+import 'package:formeo/core/exceptions/app_exception.dart';
+import 'package:formeo/domain/entities/workout_plan_model.dart';
+import 'package:formeo/domain/usecases/get_workout_plans.dart';
+import 'package:formeo/domain/usecases/create_workout_plan.dart';
 
 abstract class WorkoutPlanEvent {}
 
@@ -47,33 +48,30 @@ class WorkoutPlanBloc extends Bloc<WorkoutPlanEvent, WorkoutPlanState> {
     on<AddWorkoutPlan>(_onAddWorkoutPlan);
   }
 
-  @override
   Future<void> _onFetchWorkoutPlans(FetchWorkoutPlans event, Emitter<WorkoutPlanState> emit) async {
     emit(WorkoutPlanLoading());
     try {
       final workoutPlans = await getWorkoutPlans.execute(event.userId);
 
-      print('ВОТ ЛОГ 2: $workoutPlans');
+      debugPrint('ВОТ ЛОГ 2: $workoutPlans');
       emit(WorkoutPlanSuccess(workoutPlans));
     } catch (e) {
       // Детальное логирование ошибки
-      print('❌ WorkoutPlanBloc: Ошибка типа: ${e.runtimeType}');
-      print('❌ WorkoutPlanBloc: Сообщение: ${e.toString()}');
+      debugPrint('❌ WorkoutPlanBloc: Ошибка типа: ${e.runtimeType}');
+      debugPrint('❌ WorkoutPlanBloc: Сообщение: ${e.toString()}');
 
       // Если это DataException, попробуем получить внутреннюю ошибку
       if (e is DataException) {
-        print('❌ WorkoutPlanBloc: Это DataException, детали:');
-        print('❌ WorkoutPlanBloc: ${e.toString()}');
+        debugPrint('❌ WorkoutPlanBloc: Это DataException, детали:');
+        debugPrint('❌ WorkoutPlanBloc: ${e.toString()}');
       }
 
       // Также выведем stack trace для отладки
-      print('📋 WorkoutPlanBloc: StackTrace:');
-      print(e);
+      debugPrint('📋 WorkoutPlanBloc: StackTrace: ${e.toString()}');
       emit(WorkoutPlanError('Ошибка загрузки планов тренировок: $e'));
     }
   }
 
-  @override
   Future<void> _onAddWorkoutPlan(AddWorkoutPlan event, Emitter<WorkoutPlanState> emit) async {
     emit(WorkoutPlanLoading());
     try {

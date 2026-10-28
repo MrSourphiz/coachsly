@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:coachsly/domain/entities/workout_plan_model.dart';
-//import 'package:coachsly/domain/entities/exercise_model.dart';
-import 'package:coachsly/domain/entities/exercise.dart';
-import 'package:coachsly/presentation/screens/exercise_picker_screen.dart';
+import 'package:formeo/domain/entities/workout_plan_model.dart';
+//import 'package:formeo/domain/entities/exercise_model.dart';
+import 'package:formeo/domain/entities/exercise.dart';
+import 'package:formeo/presentation/screens/exercise_picker_screen.dart';
 
 class SupersetTrainingEditor extends StatefulWidget {
   const SupersetTrainingEditor({super.key});
@@ -44,6 +44,7 @@ class _SupersetTrainingEditorState extends State<SupersetTrainingEditor> {
     );
 
     if (selectedExercises != null && selectedExercises.isNotEmpty) {
+      if (!mounted) return;
       setState(() {
         // Заполняем оба слота упражнениями
         for (int i = 0; i < selectedExercises.length && i < 2; i++) {

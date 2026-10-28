@@ -1,4 +1,4 @@
-import 'package:equatable/equatable.dart';
+
 enum WorkoutExecutionType {
   warmup,     // Разминка
   single,     // Одиночное упражнение

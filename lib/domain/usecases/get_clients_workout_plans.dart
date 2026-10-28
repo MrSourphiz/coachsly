@@ -1,7 +1,7 @@
-import 'package:coachsly/core/exceptions/app_exception.dart';
-import 'package:coachsly/domain/entities/assigned_workout_plan.dart';
-import 'package:coachsly/domain/repositories/workout_plan_repository.dart';
-import 'package:coachsly/domain/usecases/use_case.dart';
+import 'package:formeo/core/exceptions/app_exception.dart';
+import 'package:formeo/domain/entities/assigned_workout_plan.dart';
+import 'package:formeo/domain/repositories/workout_plan_repository.dart';
+import 'package:formeo/domain/usecases/use_case.dart';
 
 class GetClientsWorkoutPlans implements UseCase<List<AssignedWorkoutProgram>, String> {
   final WorkoutPlanRepository repository;

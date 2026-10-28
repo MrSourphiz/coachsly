@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:coachsly/domain/entities/exercise.dart';
-import 'package:coachsly/presentation/screens/exercise_detail_screen.dart';
-import 'package:coachsly/presentation/blocs/exercises_bloc.dart';
-import 'package:coachsly/core/service/service_locator.dart';
+import 'package:get_it/get_it.dart';
+import 'package:formeo/domain/entities/exercise.dart';
+import 'package:formeo/presentation/screens/exercise_detail_screen.dart';
+import 'package:formeo/presentation/blocs/exercises_bloc.dart';
 
 class ExercisePickerScreen extends StatefulWidget {
   final WorkoutExecutionType executionType;
@@ -21,7 +21,7 @@ class ExercisePickerScreen extends StatefulWidget {
     int maxExercises = 1,
   }) {
     return BlocProvider(
-      create: (context) => serviceLocator<ExercisePickerBloc>(),
+      create: (context) => GetIt.I<ExercisePickerBloc>(),
       child: ExercisePickerScreen(
         executionType: executionType,
         maxExercises: maxExercises,
@@ -307,10 +307,10 @@ class _ExercisePickerScreenState extends State<ExercisePickerScreen> {
       padding: const EdgeInsets.all(12),
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
         ),
       ),
       child: Column(
@@ -521,7 +521,7 @@ class _ExerciseCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       color: isSelected
-          ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
+          ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
           : null,
       shape: isSelected
           ? RoundedRectangleBorder(
@@ -539,14 +539,14 @@ class _ExerciseCard extends StatelessWidget {
           color: isSelected ? Theme.of(context).colorScheme.primary : null,
         ),
         title: Text(
-          exercise.title ?? 'Без названия',
+          exercise.title.isEmpty ? 'Без названия' : exercise.title,
           style: TextStyle(
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
             fontSize: 14,
           ),
         ),
         subtitle: Text(
-          '${exercise.bodyPart ?? ''} | ${exercise.difficultyLevel ?? ''}',
+          '${exercise.bodyPart} | ${exercise.difficultyLevel}',
           style: const TextStyle(fontSize: 12),
         ),
         onTap: onTap,

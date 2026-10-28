@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:coachsly/presentation/blocs/training_diary_bloc.dart';
+import 'package:formeo/presentation/blocs/training_diary_bloc.dart';
 
 class TrainingDiaryScreen extends StatelessWidget {
   @override

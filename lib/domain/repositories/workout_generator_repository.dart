@@ -1,4 +1,4 @@
-import 'package:coachsly/domain/entities/workout_plan_model.dart';
+import 'package:formeo/domain/entities/workout_plan_model.dart';
 
 abstract class WorkoutGeneratorRepository {
   Future<WorkoutPlan> generateWorkoutPlan({

@@ -1,0 +1,27 @@
+workflows:
+  ios-simulator-debug:
+    name: iOS Simulator Debug
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      groups:
+        - supabase_dev        # SUPABASE_URL, SUPABASE_ANON_KEY
+    scripts:
+      - name: Get packages
+        script: flutter pub get
+      - name: Pod install
+        script: cd ios && pod install
+      - name: Build for simulator (debug)
+        script: |
+          flutter build ios --simulator --debug \
+            --dart-define=SUPABASE_URL=$SUPABASE_URL \
+            --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
+      - name: Zip .app
+        script: |
+          cd build/ios/iphonesimulator
+          zip -r Runner-simulator.zip Runner.app
+    artifacts:
+      - build/ios/iphonesimulator/Runner-simulator.zip

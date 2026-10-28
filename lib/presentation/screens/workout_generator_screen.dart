@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:coachsly/presentation/blocs/workout_generator_bloc.dart';
-import 'package:coachsly/domain/entities/workout_plan_model.dart';
+import 'package:formeo/presentation/blocs/workout_generator_bloc.dart';
+import 'package:formeo/domain/entities/workout_plan_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:get_it/get_it.dart';
 
@@ -20,8 +20,6 @@ class WorkoutGeneratorScreen extends StatelessWidget {
     );
   }
 
-
-  @override
   Widget _buildBody(BuildContext context) {
     return BlocConsumer<WorkoutGeneratorBloc, WorkoutGeneratorState>(
         listener: (context, state) {
@@ -113,14 +111,6 @@ class WorkoutGeneratorScreen extends StatelessWidget {
         programParams: programParams,
         accessToken: accessToken,
       ),
-    );
-  }
-
-  void _savePlan(BuildContext context, WorkoutPlan plan) {
-    // Реализуйте сохранение плана в Supabase
-    // Можно добавить BLoC для сохранения или вызвать напрямую
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('План сохранен!')),
     );
   }
 }

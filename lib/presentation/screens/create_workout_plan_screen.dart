@@ -1,14 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'package:coachsly/presentation/screens/workout_day_edit_screen.dart';
-import 'package:coachsly/presentation/screens/workout_generator_screen.dart';
-import 'package:coachsly/domain/entities/workout_plan_model.dart';
-import 'package:coachsly/domain/entities/quick_workout_plan.dart';
-import 'package:coachsly/presentation/blocs/workout_plan_bloc.dart';
-import 'package:coachsly/presentation/providers/user_provider.dart';
+import 'package:formeo/domain/entities/quick_workout_plan.dart';
+import 'package:formeo/presentation/providers/user_provider.dart';
 
 class CreateWorkoutPlanScreen extends StatefulWidget {
   const CreateWorkoutPlanScreen({super.key});
@@ -22,13 +17,9 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
   final _quickPlanController = TextEditingController();
 
   String _selectedType = '';
-  String _selectedSchedule = '';
-  final List<String> _selectedDays = [];
 
   String _selectedDuration = '';
   int? _manualWeeksInput;
-
-  bool _isQuickConstructor = true;
 
   final Map<String, IconData> workoutTypes = {
     'Кардио': Icons.favorite,
@@ -37,21 +28,6 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
     'Растяжка': Icons.accessibility_new,
     'Своя': Icons.create,
   };
-
-  final List<String> schedules = [
-    'Пн./Ср./Птн.',
-    'Вт./Чт./Сб.',
-    'Каждый день',
-    'Выбрать вручную',
-  ];
-
-  final List<String> daysOfWeek = [
-    'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'
-  ];
-
-  final List<String> fullDayNames = [
-    'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'
-  ];
 
   final durations = [
     '1 неделя',
@@ -78,49 +54,11 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
     }
   }
 
-  final Map<String, List<int>> predefinedSchedules = {
-    'Пн./Ср./Птн.': [0, 2, 4],
-    'Вт./Чт./Сб.': [1, 3, 5],
-    'Каждый день': [0, 1, 2, 3, 4, 5, 6],
-  };
-
-  final List<WorkoutDay> generatedWorkoutDays = [];
-
-  late WorkoutPlan _workoutPlan;
-
-  void generateWorkoutDays() {
-    final scheduledDays = _selectedSchedule == 'Выбрать вручную'
-        ? _selectedDays.map((e) => daysOfWeek.indexOf(e)).where((i) => i != -1).toList()
-        : (predefinedSchedules[_selectedSchedule] ?? []);
-
-    final Set<int> uniqueDays = scheduledDays.toSet();
-
-    for (final dayIndex in uniqueDays) {
-      if (!_workoutPlan.days.any((d) => d.dayOfWeek == dayIndex)) {
-        _workoutPlan.days.add(
-          WorkoutDay(
-            dayOfWeek: dayIndex,
-            description: '',
-            restBetweenExercises: 60,
-            items: [],
-          ),
-        );
-      }
-    }
-
-    _workoutPlan.days.removeWhere((d) => !uniqueDays.contains(d.dayOfWeek));
-  }
-
   @override
-  void initState() {
-    super.initState();
-    _workoutPlan = WorkoutPlan(
-      name: '',
-      type: '',
-      duration: 0,
-      days: [],
-      trainerId: '',
-    );
+  void dispose() {
+    _nameController.dispose();
+    _quickPlanController.dispose();
+    super.dispose();
   }
 
   @override
@@ -144,120 +82,31 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
       );
     }
 
-    final trainerId = user.id;
-    final workoutPlanBloc = GetIt.instance<WorkoutPlanBloc>();
-
-    return BlocListener<WorkoutPlanBloc, WorkoutPlanState>(
-      bloc: workoutPlanBloc,
-      listener: (context, state) {
-        if (state is WorkoutPlanCreated) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('План успешно создан')),
-          );
-          // Возвращаем true как признак успешного создания
-          Navigator.of(context).pop(true);
-        }
-
-        if (state is WorkoutPlanError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Ошибка: ${state.message}')),
-          );
-        }
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Создание плана'),
-          backgroundColor: const Color(0xFF172554),
-          foregroundColor: const Color(0xFFF9FAFB),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () {
-              // Возвращаем false при отмене создания
-              Navigator.of(context).pop(false);
-            },
-          ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Создание плана'),
+        backgroundColor: const Color(0xFF172554),
+        foregroundColor: const Color(0xFFF9FAFB),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            // Возвращаем false при отмене создания
+            Navigator.of(context).pop(false);
+          },
         ),
-        body: Container(
-          color: const Color(0xFF172554),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildConstructorSelector(),
-                const SizedBox(height: 24),
-
-                if (_isQuickConstructor)
-                  _buildQuickConstructor()
-                else
-                  _buildDetailedConstructor(trainerId, workoutPlanBloc, context),
-              ],
-            ),
+      ),
+      body: Container(
+        color: const Color(0xFF172554),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildQuickConstructor(),
+            ],
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildConstructorSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Режим создания плана',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-            color: Color(0xFFF9FAFB),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: ChoiceChip(
-                label: const Text('Быстрый конструктор'),
-                selected: _isQuickConstructor,
-                onSelected: (selected) {
-                  setState(() {
-                    _isQuickConstructor = true;
-                  });
-                },
-                selectedColor: Color(0xFF7F1D1D),
-                labelStyle: TextStyle(
-                  color: _isQuickConstructor ? const Color(0xFFF9FAFB) : Colors.black,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ChoiceChip(
-                label: const Text('Детальный конструктор'),
-                selected: !_isQuickConstructor,
-                onSelected: (selected) {
-                  setState(() {
-                    _isQuickConstructor = false;
-                  });
-                },
-                selectedColor: Color(0xFF7F1D1D),
-                labelStyle: TextStyle(
-                  color: !_isQuickConstructor ? const Color(0xFFF9FAFB) : Colors.black,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Text(
-          _isQuickConstructor
-              ? 'Вставьте готовую программу в текстовом виде'
-              : 'Пошагово создайте программу с детализацией по дням',
-          style: const TextStyle(
-            color: Color(0xFFF9FAFB),
-            fontSize: 12,
-          ),
-        ),
-      ],
     );
   }
 
@@ -276,15 +125,24 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
           ),
         ),
         const SizedBox(height: 8),
+        Text(
+          'Вставьте полный протокол сразу по всем тренировочным дням — '
+              'дни, упражнения, подходы и повторения приложение распознает из текста само',
+          style: TextStyle(
+            color: const Color(0xFFF9FAFB).withValues(alpha: 0.7),
+            fontSize: 12,
+          ),
+        ),
+        const SizedBox(height: 8),
         TextField(
           controller: _quickPlanController,
           maxLines: 10,
           style: const TextStyle(color: Colors.black),
-          decoration: InputDecoration(
-            border: const OutlineInputBorder(),
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
             hintText: 'Просто вставьте сюда текст вашей программы тренировок...',
             alignLabelWithHint: true,
-            hintStyle: const TextStyle(color: Colors.black),
+            hintStyle: TextStyle(color: Colors.black),
             filled: true,
             fillColor: Color(0xFFF9FAFB),
           ),
@@ -296,99 +154,13 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
             onPressed: _parseWorkoutPlanWithAI,
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-              backgroundColor: Color(0xFF7F1D1D),
+              backgroundColor: const Color(0xFF7F1D1D),
               foregroundColor: const Color(0xFFF9FAFB),
             ),
             child: const Text(
               'Создать план из текста',
               style: TextStyle(fontSize: 16),
             ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDetailedConstructor(String trainerId, WorkoutPlanBloc workoutPlanBloc, BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildBasicParameters(),
-
-        if (_workoutPlan.days.isNotEmpty) ...[
-          const Divider(color: Color(0xFFF9FAFB)),
-          const SizedBox(height: 16),
-          const Text(
-            'Карточки тренировок по дням',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Color(0xFFF9FAFB),
-            ),
-          ),
-          const SizedBox(height: 8),
-          ..._workoutPlan.days.map((day) {
-            final allExercises = day.items.expand((i) => i.exercises).toList();
-
-            return Card(
-              margin: const EdgeInsets.symmetric(vertical: 6),
-              elevation: 2,
-              color: const Color(0xFF2a4066),
-              child: ListTile(
-                leading: const Icon(Icons.fitness_center, color: Color(0xFFF9FAFB)),
-                title: Text(
-                  'Тренировка: ${fullDayNames[day.dayOfWeek]}',
-                  style: const TextStyle(color: Color(0xFFF9FAFB)),
-                ),
-                subtitle: allExercises.isEmpty
-                    ? const Text(
-                  'Упражнения не выбраны',
-                  style: TextStyle(color: Color(0xFFF9FAFB)),
-                )
-                    : Text(
-                  'Описание: ${day.description}',
-                  style: const TextStyle(color: Color(0xFFF9FAFB)),
-                ),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Color(0xFFF9FAFB)),
-                onTap: () async {
-                  final updatedDayData = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => WorkoutDayEditScreen(
-                        planName: _nameController.text,
-                        weekday: fullDayNames[day.dayOfWeek],
-                        dayOfWeek: day.dayOfWeek,
-                        workoutDay: day,
-                      ),
-                    ),
-                  );
-
-                  if (updatedDayData != null && updatedDayData is WorkoutDay) {
-                    setState(() {
-                      final index = _workoutPlan.days.indexWhere((d) => d.dayOfWeek == updatedDayData.dayOfWeek);
-                      if (index >= 0) {
-                        _workoutPlan.days[index] = updatedDayData;
-                      } else {
-                        _workoutPlan.days.add(updatedDayData);
-                      }
-                    });
-                  }
-                },
-              ),
-            );
-          }).toList(),
-        ],
-
-        const SizedBox(height: 32),
-        Center(
-          child: ElevatedButton(
-            onPressed: () {
-              _handleDetailedPlanCreation(trainerId, workoutPlanBloc, context);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFF7F1D1D),
-              foregroundColor: Color(0xFF2a4066),
-            ),
-            child: const Text('Создать план'),
           ),
         ),
       ],
@@ -410,10 +182,10 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
         TextField(
           controller: _nameController,
           style: const TextStyle(color: Colors.black),
-          decoration: InputDecoration(
-            border: const OutlineInputBorder(),
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
             hintText: 'Введите название, например: Силовая',
-            hintStyle: const TextStyle(color: Colors.black),
+            hintStyle: TextStyle(color: Colors.black),
             filled: true,
             fillColor: Color(0xFFF9FAFB),
           ),
@@ -458,85 +230,12 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
                     ),
                   ],
                 ),
-                selectedColor: Color(0xFF7F1D1D),
-                backgroundColor: Color(0xFFF9FAFB),
+                selectedColor: const Color(0xFF7F1D1D),
+                backgroundColor: const Color(0xFFF9FAFB),
               );
             }).toList(),
           ),
         ),
-
-        const SizedBox(height: 24),
-        const Text(
-          'График тренировок',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Color(0xFFF9FAFB),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8.0,
-            children: schedules.map((schedule) => ChoiceChip(
-              label: Text(
-                schedule,
-                style: TextStyle(
-                  color: _selectedSchedule == schedule ? const Color(0xFFF9FAFB) : Colors.black,
-                ),
-              ),
-              selected: _selectedSchedule == schedule,
-              onSelected: (_) {
-                setState(() {
-                  _selectedSchedule = schedule;
-                  _selectedDays.clear();
-                  generateWorkoutDays();
-                });
-              },
-              selectedColor: Color(0xFF7F1D1D),
-              backgroundColor: Color(0xFFF9FAFB),
-            )).toList(),
-          ),
-        ),
-
-        if (_selectedSchedule == 'Выбрать вручную') ...[
-          const SizedBox(height: 16),
-          const Divider(color: Color(0xFFF9FAFB)),
-          const SizedBox(height: 8),
-          const Text(
-            'Выберите дни недели',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Color(0xFFF9FAFB),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8.0,
-              children: daysOfWeek.map((day) => FilterChip(
-                label: Text(
-                  day,
-                  style: TextStyle(
-                    color: _selectedDays.contains(day) ? const Color(0xFFF9FAFB) : Colors.black,
-                  ),
-                ),
-                selected: _selectedDays.contains(day),
-                onSelected: (selected) {
-                  setState(() {
-                    selected ? _selectedDays.add(day) : _selectedDays.remove(day);
-                    generateWorkoutDays();
-                  });
-                },
-                selectedColor: Color(0xFF7F1D1D),
-                backgroundColor: Color(0xFFF9FAFB),
-              )).toList(),
-            ),
-          ),
-        ],
 
         const SizedBox(height: 24),
         const Text(
@@ -567,8 +266,8 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
                     _selectedDuration = duration;
                   });
                 },
-                selectedColor: Color(0xFF7F1D1D),
-                backgroundColor: Color(0xFFF9FAFB),
+                selectedColor: const Color(0xFF7F1D1D),
+                backgroundColor: const Color(0xFFF9FAFB),
               );
             }).toList(),
           ),
@@ -579,10 +278,10 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
             child: TextField(
               keyboardType: TextInputType.number,
               style: const TextStyle(color: Colors.black),
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Введите количество недель',
-                labelStyle: const TextStyle(color: Colors.black),
-                border: const OutlineInputBorder(),
+                labelStyle: TextStyle(color: Colors.black),
+                border: OutlineInputBorder(),
                 filled: true,
                 fillColor: Color(0xFFF9FAFB),
               ),
@@ -598,7 +297,7 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
     );
   }
 
-  // ========== БЫСТРЫЙ КОНСТРУКТОР - ИСПРАВЛЕННЫЕ МЕТОДЫ ==========
+  // ========== БЫСТРЫЙ КОНСТРУКТОР ==========
 
   Future<void> _parseWorkoutPlanWithAI() async {
     if (_quickPlanController.text.trim().isEmpty) {
@@ -632,7 +331,7 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                "Coachsly обрабатывает ваш текст",
+                "Обрабатываем результаты",
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: const Color(0xFFF9FAFB),
                 ),
@@ -643,6 +342,16 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
       },
     );
 
+    // Индикатор должен закрываться ровно один раз, иначе второй pop
+    // закроет сам экран или следующий диалог.
+    var loadingOpen = true;
+    void closeLoading() {
+      if (loadingOpen && mounted) {
+        loadingOpen = false;
+        Navigator.pop(context);
+      }
+    }
+
     try {
       final userProvider = GetIt.instance<UserProvider>();
       final user = userProvider.user;
@@ -650,19 +359,21 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
 
       final supabase = GetIt.instance<SupabaseClient>();
 
+      // Дни тренировок распознаются самой AI-функцией из текста программы —
+      // отдельного графика/выбора дней тренер больше не заполняет,
+      // протокол загружается сразу целиком по всем дням.
       final response = await supabase.functions.invoke('parse-workout-plan',
         body: {
           'workoutText': _quickPlanController.text,
           'planName': _nameController.text,
           'type': _selectedType,
           'duration': totalDays,
-          'schedule': _selectedSchedule,
-          'selectedDays': _getSelectedDaysForAPI(),
           'trainerId': user.id,
         },
       );
 
-      Navigator.pop(context); // Закрываем индикатор загрузки
+      closeLoading();
+      if (!mounted) return;
 
       if (response.status >= 200 && response.status < 300) {
         final data = response.data as Map<String, dynamic>?;
@@ -671,6 +382,7 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
           final quickPlan = QuickWorkoutPlan.fromJson(result['quick_plan'] as Map<String, dynamic>);
 
           final exercises = await _loadQuickPlanExercises(quickPlan.id!);
+          if (!mounted) return;
           final planWithExercises = quickPlan.copyWith(exercises: exercises);
 
           await _showQuickPlanPreview(planWithExercises);
@@ -681,32 +393,15 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
       } else {
         throw Exception('HTTP ${response.status}');
       }
-
     } catch (e) {
-      Navigator.pop(context); // Закрываем индикатор загрузки в случае ошибки
+      closeLoading();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Ошибка при анализе программы: $e'),
           duration: const Duration(seconds: 5),
         ),
       );
-    }
-  }
-
-  List<String> _getSelectedDaysForAPI() {
-    if (_selectedSchedule == 'Выбрать вручную') {
-      return _selectedDays;
-    } else {
-      switch (_selectedSchedule) {
-        case 'Пн./Ср./Птн.':
-          return ['Понедельник', 'Среда', 'Пятница'];
-        case 'Вт./Чт./Сб.':
-          return ['Вторник', 'Четверг', 'Суббота'];
-        case 'Каждый день':
-          return ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
-        default:
-          return [];
-      }
     }
   }
 
@@ -719,83 +414,91 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
           .select()
           .eq('quick_plan_id', planId);
 
-
       return response.map((e) => QuickPlanExercise.fromJson(e)).toList();
     } catch (e) {
-      print('Ошибка загрузки упражнений: $e');
+      debugPrint('Ошибка загрузки упражнений: $e');
       return [];
     }
   }
 
-  Future<void> _showQuickPlanPreview(QuickWorkoutPlan plan) async {
-    final groupedExercises = _groupExercisesInOriginalOrder(plan.exercises);
+  Future<void> _showQuickPlanPreview(QuickWorkoutPlan initialPlan) async {
+    // Актуальный план живёт здесь, а не в параметре: после генерации описаний
+    // он заменяется на обновлённый, и диалог перерисовывается.
+    var currentPlan = initialPlan;
 
-    final result = await showDialog<bool>(
+    await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          backgroundColor: Color(0xFF172554),
-          title: const Text(
-            'Быстрый план создан!',
-            style: TextStyle(color: Color(0xFFF9FAFB)),
-          ),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildPlanSummary(plan, groupedExercises),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          final groupedExercises =
+          _groupExercisesInOriginalOrder(currentPlan.exercises);
 
-                const SizedBox(height: 16),
+          return AlertDialog(
+            backgroundColor: const Color(0xFF172554),
+            title: const Text(
+              'Быстрый план создан!',
+              style: TextStyle(color: Color(0xFFF9FAFB)),
+            ),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildPlanSummary(currentPlan, groupedExercises),
 
-                if (plan.exercises.any((e) => e.description == null))
-                  _buildGenerateDescriptionsButton(plan, setState),
+                  const SizedBox(height: 16),
 
-                const SizedBox(height: 16),
+                  if (currentPlan.exercises.any((e) => e.description == null))
+                    _buildGenerateDescriptionsButton(
+                      currentPlan,
+                          (updated) => setDialogState(() => currentPlan = updated),
+                    ),
 
-                Expanded(
-                  child: _buildExercisesByDays(groupedExercises),
-                ),
+                  const SizedBox(height: 16),
 
-                const SizedBox(height: 8),
-                Text(
-                  'Проверьте распознанные данные перед назначением клиенту',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFFF9FAFB),
+                  Expanded(
+                    child: _buildExercisesByDays(groupedExercises),
                   ),
+
+                  const SizedBox(height: 8),
+                  Text(
+                    'Проверьте распознанные данные перед назначением клиенту',
+                    style: Theme.of(dialogContext).textTheme.bodySmall?.copyWith(
+                      color: const Color(0xFFF9FAFB),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text(
+                  'Закрыть',
+                  style: TextStyle(color: Color(0xFFF9FAFB)),
                 ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text(
-                'Закрыть',
-                style: TextStyle(color: Color(0xFFF9FAFB)),
               ),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context, true);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF2a4066),
-                foregroundColor: const Color(0xFFF9FAFB),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2a4066),
+                  foregroundColor: const Color(0xFFF9FAFB),
+                ),
+                child: const Text('Назначить клиенту'),
               ),
-              child: const Text('Назначить клиенту'),
-            ),
-          ],
-        ),
+            ],
+          );
+        },
       ),
     );
 
-    // После закрытия диалога возвращаемся с результатом
-    if (result == true) {
-      Navigator.of(context).pop(true);
-    }
+    // План уже сохранён в БД к этому моменту (диалог показывается только
+    // после успешного ответа parse-workout-plan) — независимо от того,
+    // какую кнопку нажал тренер, возвращаемся на экран списка с true.
+    if (!mounted) return;
+    Navigator.of(context).pop(true);
   }
 
   Map<int, List<QuickPlanExercise>> _groupExercisesInOriginalOrder(List<QuickPlanExercise> exercises) {
@@ -856,16 +559,19 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
     );
   }
 
-  Widget _buildGenerateDescriptionsButton(QuickWorkoutPlan plan, StateSetter setState) {
+  Widget _buildGenerateDescriptionsButton(
+      QuickWorkoutPlan plan,
+      void Function(QuickWorkoutPlan updated) onUpdated,
+      ) {
     return ElevatedButton.icon(
-      onPressed: () => _generateExerciseDescriptions(plan, setState),
+      onPressed: () => _generateExerciseDescriptions(plan, onUpdated),
       icon: const Icon(Icons.auto_awesome, size: 20, color: Color(0xFFF9FAFB)),
       label: const Text(
         "Сгенерировать описания упражнений",
         style: TextStyle(color: Color(0xFFF9FAFB)),
       ),
       style: ElevatedButton.styleFrom(
-        backgroundColor: Color(0xFF2a4066),
+        backgroundColor: const Color(0xFF2a4066),
       ),
     );
   }
@@ -879,8 +585,7 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
       itemBuilder: (context, dayIndex) {
         final dayKey = dayKeys[dayIndex];
         final dayExercises = groupedExercises[dayKey]!;
-        final dayName = _getDayName(dayKey);
-        final shortDayName = _getShortDayName(dayKey);
+        final dayName = dayExercises.first.displayDayLabel;
 
         return Card(
           color: const Color(0xFF172554),
@@ -892,9 +597,9 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Color(0xFF2a4066),//_getDayColor(dayIndex).withOpacity(0.2),
-                  borderRadius: const BorderRadius.only(
+                decoration: const BoxDecoration(
+                  color: Color(0xFF2a4066),
+                  borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(8),
                     topRight: Radius.circular(8),
                   ),
@@ -915,25 +620,13 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'День ${dayIndex + 1}($dayName)',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Color(0xFFF9FAFB),
-                            ),
-                          ),
-                          Text(
-                            shortDayName,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFFF9FAFB),
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        'День ${dayIndex + 1}: $dayName',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Color(0xFFF9FAFB),
+                        ),
                       ),
                     ),
                     Text(
@@ -946,7 +639,6 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
                 ),
               ),
 
-              //...dayExercises.map((exercise) => _buildExerciseTile(exercise, dayIndex)),
               ...dayExercises.asMap().entries.map((entry) => _buildExerciseTile(entry.value, dayIndex, entry.key)),
             ],
           ),
@@ -958,7 +650,7 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
   Widget _buildExerciseTile(QuickPlanExercise exercise, int dayIndex, int exerciseIndex) {
     return Container(
       decoration: BoxDecoration(
-        color: Color(0xFF2a4066),
+        color: const Color(0xFF2a4066),
         border: Border(
           top: BorderSide(
             color: Colors.grey.shade600,
@@ -969,10 +661,10 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: CircleAvatar(
-          backgroundColor: _getDayColor(dayIndex).withOpacity(0.2),
+          backgroundColor: _getDayColor(dayIndex).withValues(alpha: 0.2),
           radius: 20,
           child: Text(
-            '${exerciseIndex + 1}',//'${dayIndex + 1}',
+            '${exerciseIndex + 1}',
             style: TextStyle(
               color: _getDayColor(dayIndex),
               fontSize: 12,
@@ -1079,23 +771,16 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
     return colors[dayIndex % colors.length];
   }
 
-  String _getDayName(int dayOfWeek) {
-    final dayNames = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
-    return dayNames[dayOfWeek];
-  }
-
-  String _getShortDayName(int dayOfWeek) {
-    final shortDayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-    return shortDayNames[dayOfWeek];
-  }
-
   String _getExerciseWord(int count) {
     if (count % 10 == 1 && count % 100 != 11) return 'упражнение';
     if (count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 10 || count % 100 >= 20)) return 'упражнения';
     return 'упражнений';
   }
 
-  Future<void> _generateExerciseDescriptions(QuickWorkoutPlan plan, StateSetter setState) async {
+  Future<void> _generateExerciseDescriptions(
+      QuickWorkoutPlan plan,
+      void Function(QuickWorkoutPlan updated) onUpdated,
+      ) async {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -1122,6 +807,14 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
       ),
     );
 
+    var loadingOpen = true;
+    void closeLoading() {
+      if (loadingOpen && mounted) {
+        loadingOpen = false;
+        Navigator.pop(context);
+      }
+    }
+
     try {
       final user = GetIt.instance<UserProvider>().user;
       if (user == null) throw Exception('Пользователь не авторизован');
@@ -1133,7 +826,7 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
           .map((e) => e.customName)
           .toList();
 
-      print("Generating descriptions for: ${exerciseNames.join(', ')}");
+      debugPrint("Generating descriptions for: ${exerciseNames.join(', ')}");
 
       final response = await supabase.functions.invoke('generate-exercise-descriptions',
         body: {
@@ -1142,23 +835,24 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
         },
       );
 
-      Navigator.pop(context);
+      closeLoading();
+      if (!mounted) return;
 
       if (response.status >= 200 && response.status < 300) {
         final data = response.data as Map<String, dynamic>?;
 
         if (data != null && data['success'] == true) {
-          final results = data['results'] as List<dynamic>;
+          final results = (data['results'] as List<dynamic>).cast<Map<String, dynamic>>();
 
           final updatedExercises = plan.exercises.map((exercise) {
-            final result = results.cast<Map<String, dynamic>>().firstWhere(
+            final result = results.firstWhere(
                   (r) => r['exerciseName'] == exercise.customName,
               orElse: () => <String, dynamic>{},
             );
 
             if (result.isNotEmpty) {
               if (result['success'] == false) {
-                print("Failed to generate description for ${exercise.customName}: ${result['error']}");
+                debugPrint("Failed to generate description for ${exercise.customName}: ${result['error']}");
                 return exercise;
               }
 
@@ -1172,10 +866,12 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
             return exercise;
           }).toList();
 
-          final updatedPlan = plan.copyWith(exercises: updatedExercises);
-          setState(() {});
+          // Передаём обновлённый план в диалог превью — он перерисуется
+          onUpdated(plan.copyWith(exercises: updatedExercises));
 
-          final successful = results.where((r) => r['success'] != false && r['description'] != null).length;
+          final successful = results
+              .where((r) => r['success'] != false && r['description'] != null)
+              .length;
           final failed = results.length - successful;
 
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1191,7 +887,8 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
         throw Exception('HTTP ${response.status}');
       }
     } catch (e) {
-      Navigator.pop(context);
+      closeLoading();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Ошибка генерации описаний: $e'),
@@ -1199,42 +896,5 @@ class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
         ),
       );
     }
-  }
-
-  void _assignPlanToClient(QuickWorkoutPlan plan) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('План готов к назначению клиенту!')),
-    );
-  }
-
-  int _countTrainingDays(List<QuickPlanExercise> exercises) {
-    final uniqueDays = exercises.map((e) => e.dayOfWeek).toSet();
-    return uniqueDays.length;
-  }
-
-  void _handleDetailedPlanCreation(String trainerId, WorkoutPlanBloc workoutPlanBloc, BuildContext context) {
-    _workoutPlan = _workoutPlan.copyWith(
-      name: _nameController.text,
-      type: _selectedType,
-      duration: totalDays,
-    );
-
-    final daysWithoutExercises = _workoutPlan.days.where(
-          (day) => day.items.isEmpty || day.items.every((item) => item.exercises.isEmpty),
-    ).toList();
-
-    if (daysWithoutExercises.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Добавьте упражнения в тренировочные дни перед сохранением'),
-          duration: Duration(seconds: 3),
-        ),
-      );
-      return;
-    }
-
-    workoutPlanBloc.add(
-      AddWorkoutPlan(trainerId, _workoutPlan),
-    );
   }
 }

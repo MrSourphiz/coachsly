@@ -1,11 +1,20 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
-import 'package:coachsly/domain/entities/user.dart';
-import 'package:coachsly/domain/repositories/auth_repository.dart';
-import 'package:coachsly/presentation/providers/user_provider.dart';
+import 'package:formeo/domain/entities/user.dart';
+import 'package:formeo/domain/repositories/auth_repository.dart';
+import 'package:formeo/domain/repositories/exercises_repository.dart';
+import 'package:formeo/data/sources/supabase_data_source.dart';
+import 'package:formeo/presentation/providers/user_provider.dart';
+import 'package:formeo/core/service/push_notification_service.dart';
+import 'package:formeo/core/exceptions/app_exception.dart';
+import 'package:formeo/data/repositories/exrcises_repository_impl.dart';
 
+// ───── События ─────
 abstract class AuthEvent {}
+
 class CheckAuthStatusEvent extends AuthEvent {}
+
 class SignUp extends AuthEvent {
   final String email;
   final String password;
@@ -13,26 +22,49 @@ class SignUp extends AuthEvent {
   final String timezone;
   SignUp(this.email, this.password, this.role, this.timezone);
 }
+
 class SignIn extends AuthEvent {
   final String email;
   final String password;
   SignIn(this.email, this.password);
 }
+
 class SignOut extends AuthEvent {}
 
+class SendMagicLink extends AuthEvent {
+  final String email;
+  SendMagicLink(this.email);
+}
+
+// ───── Состояния ─────
 abstract class AuthState {}
+
 class AuthInitial extends AuthState {}
+
 class AuthLoading extends AuthState {}
+
 class AuthAuthenticated extends AuthState {
   final User user;
   AuthAuthenticated(this.user);
 }
+
 class AuthUnauthenticated extends AuthState {}
+
 class AuthError extends AuthState {
   final String message;
   AuthError(this.message);
 }
 
+class MagicLinkSent extends AuthState {}
+
+// Регистрация прошла успешно, но email ещё не подтверждён.
+// Сессии нет — пользователь должен проверить почту.
+class AuthEmailConfirmationRequired extends AuthState {
+  final String email;
+  AuthEmailConfirmationRequired(this.email);
+}
+
+// ───── Блок ─────
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthRepository authRepository;
   final UserProvider userProvider = GetIt.I<UserProvider>();
@@ -41,16 +73,24 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<CheckAuthStatusEvent>((event, emit) async {
       try {
         final user = await authRepository.checkAuthStatus();
-        print('CheckAuthStatus result: $user');
+        debugPrint('CheckAuthStatus result: $user');
         if (user != null) {
           userProvider.setUser(user);
+          GetIt.instance<PushNotificationService>().initialize(user.id);
           emit(AuthAuthenticated(user));
         } else {
+          // null = сессии нет, это точная информация → разлогиниваем
           userProvider.clearUser();
           emit(AuthUnauthenticated());
         }
       } catch (e) {
-        print('Ошибка в CheckAuthStatus: $e');
+        debugPrint('Ошибка в CheckAuthStatus: $e');
+        // Если уже есть активное состояние AuthAuthenticated — не разлогиниваем.
+        // Ошибка могла быть сетевой, а не связанной с авторизацией.
+        if (state is AuthAuthenticated) {
+          debugPrint('CheckAuthStatus: уже авторизован, игнорируем ошибку');
+          return;
+        }
         userProvider.clearUser();
         emit(AuthUnauthenticated());
       }
@@ -59,23 +99,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<SignUp>((event, emit) async {
       try {
         emit(AuthLoading());
-        print('Регистрация пользователя: ${event.email}, роль: ${event.role}');
-        final user = await authRepository.register(
+        debugPrint('Регистрация пользователя: ${event.email}, роль: ${event.role}');
+        await authRepository.register(
           event.email,
           event.password,
           event.role,
           event.timezone,
         );
-        print('Пользователь зарегистрирован: ${user.email}');
-        userProvider.setUser(user);
-        emit(AuthAuthenticated(user));
+        debugPrint('Пользователь зарегистрирован: ${event.email}');
+        // Не создаём сессию — ждём подтверждения email.
+        // userProvider и PushNotifications инициализируются после входа.
+        emit(AuthEmailConfirmationRequired(event.email));
       } catch (e) {
-        print('Ошибка в SignUp: $e');
-        if (e.toString().contains('user_already_exists')) {
-          emit(AuthError('Пользователь с таким email уже зарегистрирован'));
-        } else {
-          emit(AuthError('Ошибка регистрации: $e'));
-        }
+        debugPrint('Ошибка в SignUp: $e');
+        final msg = e is AppException ? e.message : e.toString();
+        emit(AuthError(msg));
       }
     });
 
@@ -86,12 +124,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           event.email,
           event.password,
         );
-        print('Пользователь вошёл: ${user.email}');
+        debugPrint('Пользователь вошёл: ${user.email}');
         userProvider.setUser(user);
+
+        GetIt.instance<PushNotificationService>().initialize(user.id);
         emit(AuthAuthenticated(user));
       } catch (e) {
-        print('Ошибка в SignIn: $e');
-        emit(AuthError('Ошибка входа: $e'));
+        debugPrint('Ошибка в SignIn: $e');
+        final msg = e is AppException ? e.message : e.toString();
+        emit(AuthError(msg));
       }
     });
 
@@ -99,9 +140,26 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       try {
         await authRepository.logout();
         userProvider.clearUser();
+        // Сбрасываем кэш упражнений — следующий пользователь получит свежие данные
+        final exercises = GetIt.instance<ExercisesRepository>();
+        if (exercises is ExerciseRepositoryImpl) {
+          exercises.invalidate();
+        }
         emit(AuthUnauthenticated());
       } catch (e) {
         emit(AuthError('Ошибка выхода: $e'));
+      }
+    });
+
+    on<SendMagicLink>((event, emit) async {
+      try {
+        emit(AuthLoading());
+        await GetIt.instance<SupabaseDataSource>()
+            .signInWithMagicLink(event.email);
+        emit(MagicLinkSent());
+      } catch (e) {
+        debugPrint('Ошибка в SendMagicLink: $e');
+        emit(AuthError('Ошибка отправки ссылки: $e'));
       }
     });
   }

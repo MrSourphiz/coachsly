@@ -1,7 +1,7 @@
-import 'package:coachsly/core/exceptions/app_exception.dart';
-import 'package:coachsly/domain/entities/workout_plan_model.dart';
-import 'package:coachsly/domain/repositories/workout_plan_repository.dart';
-import 'package:coachsly/domain/usecases/use_case.dart';
+import 'package:formeo/core/exceptions/app_exception.dart';
+import 'package:formeo/domain/entities/workout_plan_model.dart';
+import 'package:formeo/domain/repositories/workout_plan_repository.dart';
+import 'package:formeo/domain/usecases/use_case.dart';
 
 class CreateWorkoutPlanParams {
   final String userId;

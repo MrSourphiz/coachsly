@@ -1,11 +1,10 @@
 // application/bloc/client_workout_plan_bloc.dart
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:coachsly/core/exceptions/app_exception.dart';
-import 'package:coachsly/domain/entities/assigned_workout_plan.dart';
-import 'package:coachsly/domain/usecases/get_clients_workout_plans.dart';
-import 'package:coachsly/domain/usecases/assign_workout_plan.dart';
-import 'package:coachsly/domain/usecases/update_assigned_workout_plan.dart';
-import 'package:coachsly/domain/usecases/delete_assigned_workout_plan.dart';
+import 'package:formeo/domain/entities/assigned_workout_plan.dart';
+import 'package:formeo/domain/usecases/get_clients_workout_plans.dart';
+import 'package:formeo/domain/usecases/assign_workout_plan.dart';
+import 'package:formeo/domain/usecases/update_assigned_workout_plan.dart';
+import 'package:formeo/domain/usecases/delete_assigned_workout_plan.dart';
 
 // События
 abstract class ClientWorkoutPlanEvent {}

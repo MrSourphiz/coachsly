@@ -1,4 +1,4 @@
-import 'package:coachsly/domain/entities/user.dart';
+import 'package:formeo/domain/entities/user.dart';
 
 abstract class AuthRepository {
   /// Проверяет текущий статус аутентификации пользователя.

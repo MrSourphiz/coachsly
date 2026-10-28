@@ -1,7 +1,7 @@
-import 'package:coachsly/core/exceptions/app_exception.dart';
-import 'package:coachsly/domain/entities/schedule.dart';
-import 'package:coachsly/domain/repositories/schedule_repository.dart';
-import 'package:coachsly/domain/usecases/use_case.dart';
+import 'package:formeo/core/exceptions/app_exception.dart';
+import 'package:formeo/domain/entities/schedule.dart';
+import 'package:formeo/domain/repositories/schedule_repository.dart';
+import 'package:formeo/domain/usecases/use_case.dart';
 
 class GetSchedules implements UseCase<List<Schedule>, String> {
   final ScheduleRepository repository;

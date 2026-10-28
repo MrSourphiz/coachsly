@@ -1,8 +1,8 @@
 import 'package:logger/logger.dart';
-import 'package:coachsly/core/exceptions/app_exception.dart';
-import 'package:coachsly/data/sources/supabase_data_source.dart';
-import 'package:coachsly/domain/entities/training_diary_entry.dart';
-import 'package:coachsly/domain/repositories/training_diary_repository.dart';
+import 'package:formeo/core/exceptions/app_exception.dart';
+import 'package:formeo/data/sources/supabase_data_source.dart';
+import 'package:formeo/domain/entities/training_diary_entry.dart';
+import 'package:formeo/domain/repositories/training_diary_repository.dart';
 
 final logger = Logger();
 

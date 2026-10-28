@@ -17,6 +17,7 @@ flutter_*.png
 **/android/local.properties
 **/android/**/GeneratedPluginRegistrant.java
 **/android/key.properties
+**/android/keystore.properties
 *.jks
 android/app/build/
 
@@ -37,5 +38,8 @@ android/app/build/
 
 # Secrets
 .env
+dart_defines.env
+assets/.env
+lib/firebase_options.dart
 google-services.json
 GoogleService-Info.plist

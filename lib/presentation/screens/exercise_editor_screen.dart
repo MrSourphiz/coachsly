@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-//import 'package:coachsly/domain/entities/workout_exercise.dart';
-import 'package:coachsly/domain/entities/workout_plan_model.dart';
+//import 'package:formeo/domain/entities/workout_exercise.dart';
+import 'package:formeo/domain/entities/workout_plan_model.dart';
 
 
 class ExerciseEditor extends StatefulWidget {

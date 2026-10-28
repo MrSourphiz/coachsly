@@ -1,7 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:coachsly/core/exceptions/app_exception.dart';
-import 'package:coachsly/domain/entities/training_diary_entry.dart';
-import 'package:coachsly/domain/usecases/get_training_diary_entries.dart';
+import 'package:formeo/domain/entities/training_diary_entry.dart';
+import 'package:formeo/domain/usecases/get_training_diary_entries.dart';
 
 abstract class TrainingDiaryEvent {}
 
@@ -35,7 +34,6 @@ class TrainingDiaryBloc extends Bloc<TrainingDiaryEvent, TrainingDiaryState> {
     on<FetchTrainingDiary>(_onFetchTrainingDiary);
   }
 
-  @override
   Future<void> _onFetchTrainingDiary(FetchTrainingDiary event, Emitter<TrainingDiaryState> emit) async {
     emit(TrainingDiaryLoading());
     try {

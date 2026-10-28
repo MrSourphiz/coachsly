@@ -1,5 +1,5 @@
-name: coachsly
-description: "A new Flutter project."
+name: formeo
+description: "A project for coachs."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -17,6 +17,13 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
 version: 1.0.0+1
+
+flutter_native_splash:
+  color: "#172554"
+  image: assets/images/app_icon.png
+  android_12:
+    color: "#172554"
+    image: assets/images/app_icon.png
 
 environment:
   sdk: '>=3.3.4 <4.0.0'
@@ -40,8 +47,7 @@ dependencies:
   get_it: ^8.2.0                    # Для внедрения зависимостей (Dependency Injection)
   shared_preferences: ^2.5.3        # Для сохранения постоянных данных ключ-значение, на устройствах iOS и Android.
   provider: ^6.0.0                  # Для доступа к функционалу и отслеживанию текущего пользователя( и его роли)
-  supabase_flutter: ^2.8.0          # Для облачной платформы Supabase - PostgreSQL с готовым API, аутентификацией и другими функциями
-  flutter_dotenv: ^6.0.0            # Для хранения ключей отдельно от кода
+  supabase_flutter: ^2.9.0          # Для облачной платформы Supabase - PostgreSQL с готовым API, аутентификацией и другими функциями
   go_router: ^16.3.0                # Для централизованной маршрутизации
   logger: ^2.0.0                    # Для логирования ошибок и важных событий.
   qr_flutter: ^4.1.0                # Для работы с QR-кодами
@@ -62,16 +68,24 @@ dependencies:
   flutter_timezone: ^5.0.1
   device_info_plus: ^12.2.0
   url_launcher: ^6.3.2
-
+  excel: ^4.0.0
+  path_provider: ^2.0.0
+  flutter_secure_storage: ^9.0.0
+  firebase_core: ^3.0.0
+  firebase_messaging: ^15.0.0
+  flutter_local_notifications: ^19.5.0
+  app_links: ^6.4.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.6
+  intl: ^0.19.0
 
 dev_dependencies:
   injectable_generator: ^2.1.0
   build_runner: ^2.4.6
-  flutter_launcher_icons: ^0.10.0
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.0
 
   flutter_test:
     sdk: flutter
@@ -104,7 +118,6 @@ flutter:
   #   - images/a_dot_ham.jpeg
 
   assets:
-    - assets/.env
     - assets/images/icon-kettlebell.svg
     - assets/images/icon-kettlebell-low.svg
     - assets/images/icon-kettlebell-medium.svg

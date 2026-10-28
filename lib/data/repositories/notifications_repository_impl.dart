@@ -1,6 +1,6 @@
-import 'package:coachsly/data/sources/supabase_data_source.dart';
-import 'package:coachsly/domain/entities/notification.dart';
-import 'package:coachsly/domain/repositories/notifications_repository.dart';
+import 'package:formeo/data/sources/supabase_data_source.dart';
+import 'package:formeo/domain/entities/notification.dart';
+import 'package:formeo/domain/repositories/notifications_repository.dart';
 
 class NotificationsRepositoryImpl implements NotificationsRepository {
   final SupabaseDataSource _dataSource;
@@ -18,5 +18,10 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
   Future<void> markAsRead(String id)  {
     final response = _dataSource.markAsRead(id);
     return response;
+  }
+
+  @override
+  Future<NotificationItem?> getNotificationById(String id) {
+    return _dataSource.getNotificationById(id);
   }
 }

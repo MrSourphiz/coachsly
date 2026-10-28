@@ -1,4 +1,4 @@
-import 'package:coachsly/domain/entities/exercise.dart';
+import 'package:formeo/domain/entities/exercise.dart';
 //абстрактный интерфейс репозитория
 abstract class ExercisesRepository {
   Future<List<Exercise>> getExercises({

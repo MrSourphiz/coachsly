@@ -1,6 +1,6 @@
-import 'package:coachsly/core/exceptions/app_exception.dart';
-import 'package:coachsly/domain/repositories/auth_repository.dart';
-import 'package:coachsly/domain/usecases/use_case.dart';
+import 'package:formeo/core/exceptions/app_exception.dart';
+import 'package:formeo/domain/repositories/auth_repository.dart';
+import 'package:formeo/domain/usecases/use_case.dart';
 
 class CheckAuthStatus implements UseCase<bool, void> {
   final AuthRepository repository;

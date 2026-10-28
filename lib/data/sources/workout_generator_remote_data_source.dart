@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
-import 'package:coachsly/core/constants/supabase_constants.dart';
-import 'package:coachsly/core/exceptions/app_exception.dart';
-import 'package:coachsly/domain/entities/workout_plan_model.dart';
+import 'package:formeo/core/constants/supabase_constants.dart';
+import 'package:formeo/core/exceptions/app_exception.dart';
+import 'package:formeo/domain/entities/workout_plan_model.dart';
 
 abstract class WorkoutGeneratorRemoteDataSource {
   Future<WorkoutPlan> generateWorkoutPlan({

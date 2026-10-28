@@ -1,7 +1,7 @@
-import 'package:coachsly/core/exceptions/app_exception.dart';
-import 'package:coachsly/domain/entities/training_diary_entry.dart';
-import 'package:coachsly/domain/repositories/training_diary_repository.dart';
-import 'package:coachsly/domain/usecases/use_case.dart';
+import 'package:formeo/core/exceptions/app_exception.dart';
+import 'package:formeo/domain/entities/training_diary_entry.dart';
+import 'package:formeo/domain/repositories/training_diary_repository.dart';
+import 'package:formeo/domain/usecases/use_case.dart';
 
 class GetTrainingDiaryEntries implements UseCase<List<TrainingDiaryEntry>, String> {
   final TrainingDiaryRepository repository;

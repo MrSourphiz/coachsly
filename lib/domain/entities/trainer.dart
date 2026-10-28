@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:coachsly/domain/entities/workout_plan_model.dart';
+import 'package:formeo/domain/entities/workout_plan_model.dart';
 
 class Trainer extends Equatable {
   final String id;

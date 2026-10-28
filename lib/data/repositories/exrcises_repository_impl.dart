@@ -1,13 +1,17 @@
-import 'package:coachsly/domain/entities/exercise.dart';
-import 'package:coachsly/domain/repositories/exercises_repository.dart';
-import 'package:coachsly/data/sources/supabase_data_source.dart';
+import 'package:formeo/domain/entities/exercise.dart';
+import 'package:formeo/domain/repositories/exercises_repository.dart';
+import 'package:formeo/data/sources/supabase_data_source.dart';
 
 class ExerciseRepositoryImpl implements ExercisesRepository {
   final SupabaseDataSource _dataSource;
 
   ExerciseRepositoryImpl(this._dataSource);
 
+  // Кэш живёт 24 часа — после этого данные будут перезапрошены.
+  static const _cacheTtl = Duration(hours: 24);
+
   final Map<String, List<Exercise>> _cache = {};
+  final Map<String, DateTime> _cacheTimestamps = {};
 
   String _key({
     List<String>? categories,
@@ -21,6 +25,18 @@ class ExerciseRepositoryImpl implements ExercisesRepository {
       equipment?.join(',') ?? '',
       difficulty?.join(',') ?? '',
     ].join('|');
+  }
+
+  bool _isCacheValid(String key) {
+    final ts = _cacheTimestamps[key];
+    if (ts == null) return false;
+    return DateTime.now().difference(ts) < _cacheTtl;
+  }
+
+  /// Принудительно сбрасывает весь кэш (например, при логауте).
+  void invalidate() {
+    _cache.clear();
+    _cacheTimestamps.clear();
   }
 
   @override
@@ -37,7 +53,7 @@ class ExerciseRepositoryImpl implements ExercisesRepository {
       difficulty: difficulty,
     );
 
-    if (_cache.containsKey(cacheKey)) {
+    if (_cache.containsKey(cacheKey) && _isCacheValid(cacheKey)) {
       return _cache[cacheKey]!;
     }
 
@@ -49,6 +65,7 @@ class ExerciseRepositoryImpl implements ExercisesRepository {
     );
 
     _cache[cacheKey] = result;
+    _cacheTimestamps[cacheKey] = DateTime.now();
     return result;
   }
 }

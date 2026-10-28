@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:coachsly/presentation/screens/exercise_picker_screen.dart';
-//import 'package:coachsly/domain/entities/exercise_model.dart';
-import 'package:coachsly/domain/entities/exercise.dart';
-import 'package:coachsly/domain/entities/workout_plan_model.dart';
+import 'package:formeo/presentation/screens/exercise_picker_screen.dart';
+//import 'package:formeo/domain/entities/exercise_model.dart';
+import 'package:formeo/domain/entities/exercise.dart';
+import 'package:formeo/domain/entities/workout_plan_model.dart';
 
 class WarmUpExerciseEditor extends StatefulWidget {
   const WarmUpExerciseEditor({super.key});
@@ -20,8 +20,6 @@ class _WarmUpExerciseEditorState extends State<WarmUpExerciseEditor> {
   final TextEditingController _workSetsController = TextEditingController();
   final TextEditingController _repsController = TextEditingController();
   Exercise? _selectedExercise;
-
-  bool _showAdvanced = false; // флаг для расширенных настроек
 
   @override
   void dispose() {
@@ -59,6 +57,7 @@ class _WarmUpExerciseEditorState extends State<WarmUpExerciseEditor> {
                 );
 
                 if (selectedExercises != null) {
+                  if (!mounted) return;
                   setState(() {
                     _selectedExercise = selectedExercises.first;
                     _exercises[index] = selectedExercises.first.title;

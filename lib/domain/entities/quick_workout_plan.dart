@@ -104,6 +104,26 @@ class QuickWorkoutPlan extends Equatable {
     id, name, type, duration, schedule, selectedDays,
     originalText, parsedData, status, createdAt, updatedAt, exercises
   ];
+
+  static const Map<String, String> _typeLabels = {
+    'cardio': 'Кардио',
+    'strength': 'Силовая',
+    'functional': 'Функциональная',
+    'stretching': 'Растяжка',
+    'custom': 'Своя',
+    'general': 'Общая',
+  };
+
+  /// Тип плана по-русски для отображения в UI. type может прийти уже
+  /// по-русски (ручное создание через ChoiceChip в
+  /// create_workout_plan_screen.dart) или по-английски (AI-парсер
+  /// программы из текста). Незнакомые/уже русские значения возвращаются
+  /// как есть — тот же приём, что и в displayDayLabel у QuickPlanExercise.
+  String get typeLabel {
+    final t = type;
+    if (t == null || t.isEmpty) return 'Без типа';
+    return _typeLabels[t.toLowerCase()] ?? t;
+  }
 }
 
 class QuickPlanExercise extends Equatable {
@@ -112,6 +132,7 @@ class QuickPlanExercise extends Equatable {
   final String? trainerExerciseId;
   final String customName;
   final int dayOfWeek;
+  final String? dayLabel;
   final int exerciseOrder;
   final String note;
   final int reps;
@@ -128,6 +149,7 @@ class QuickPlanExercise extends Equatable {
     this.trainerExerciseId,
     required this.customName,
     required this.dayOfWeek,
+    this.dayLabel,
     required this.exerciseOrder,
     required this.note,
     required this.reps,
@@ -139,6 +161,16 @@ class QuickPlanExercise extends Equatable {
     this.instructions,
   });
 
+  /// Название дня для отображения — используется всюду, где раньше был
+  /// жёстко вычисленный день недели (Пн/Вт/Ср...). Если тренер грузил
+  /// программу до появления day_label (либо AI вернула пустую метку) —
+  /// показываем нейтральное "День N" вместо неверного дня недели.
+  String get displayDayLabel {
+    final label = dayLabel;
+    if (label != null && label.trim().isNotEmpty) return label;
+    return 'День ${dayOfWeek + 1}';
+  }
+
   factory QuickPlanExercise.fromJson(Map<String, dynamic> json) {
     return QuickPlanExercise(
       id: json['id'],
@@ -146,6 +178,7 @@ class QuickPlanExercise extends Equatable {
       trainerExerciseId: json['trainer_exercise_id'],
       customName: json['custom_name'],
       dayOfWeek: json['day_of_week'],
+      dayLabel: json['day_label'] as String?,
       exerciseOrder: json['exercise_order'],
       note: json['note'] ?? '',
       reps: json['reps'],
@@ -169,6 +202,7 @@ class QuickPlanExercise extends Equatable {
       'trainer_exercise_id': trainerExerciseId,
       'custom_name': customName,
       'day_of_week': dayOfWeek,
+      'day_label': dayLabel,
       'exercise_order': exerciseOrder,
       'note': note,
       'reps': reps,
@@ -187,6 +221,7 @@ class QuickPlanExercise extends Equatable {
     String? trainerExerciseId,
     String? customName,
     int? dayOfWeek,
+    String? dayLabel,
     int? exerciseOrder,
     String? note,
     int? reps,
@@ -203,6 +238,7 @@ class QuickPlanExercise extends Equatable {
       trainerExerciseId: trainerExerciseId ?? this.trainerExerciseId,
       customName: customName ?? this.customName,
       dayOfWeek: dayOfWeek ?? this.dayOfWeek,
+      dayLabel: dayLabel ?? this.dayLabel,
       exerciseOrder: exerciseOrder ?? this.exerciseOrder,
       note: note ?? this.note,
       reps: reps ?? this.reps,
@@ -217,7 +253,7 @@ class QuickPlanExercise extends Equatable {
 
   @override
   List<Object?> get props => [
-    id, quickPlanId, trainerExerciseId, customName, dayOfWeek,
+    id, quickPlanId, trainerExerciseId, customName, dayOfWeek, dayLabel,
     exerciseOrder, note, reps, workSets, warmupSets, restSeconds,
     createdAt, description, instructions
   ];

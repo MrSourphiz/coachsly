@@ -1,6 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:coachsly/domain/entities/exercise.dart';
-import 'package:coachsly/domain/repositories/exercises_repository.dart';
+import 'package:formeo/domain/entities/exercise.dart';
+import 'package:formeo/domain/repositories/exercises_repository.dart';
 
 // События
 abstract class ExercisePickerEvent {}

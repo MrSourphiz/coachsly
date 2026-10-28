@@ -1,9 +1,7 @@
-import 'package:bloc/bloc.dart';
-import 'package:coachsly/core/errors/failures.dart';
-import 'package:coachsly/domain/entities/workout_plan_model.dart';
-import 'package:coachsly/domain/usecases/generate_workout_plan.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:formeo/domain/entities/workout_plan_model.dart';
+import 'package:formeo/domain/usecases/generate_workout_plan.dart';
 import 'package:equatable/equatable.dart';
-import 'package:meta/meta.dart';
 
 part 'workout_generator_event.dart';
 part 'workout_generator_state.dart';

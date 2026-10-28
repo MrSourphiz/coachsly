@@ -1,4 +1,4 @@
-package com.example.coachsly
+package com.formeo
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -1,4 +1,4 @@
-import 'package:coachsly/domain/entities/training_diary_entry.dart';
+import 'package:formeo/domain/entities/training_diary_entry.dart';
 
 abstract class TrainingDiaryRepository {
   Future<List<TrainingDiaryEntry>> getEntries(String userId);

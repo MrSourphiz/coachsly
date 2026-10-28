@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
-//import 'package:coachsly/domain/entities/exercise_model.dart';
-import 'package:coachsly/domain/entities/exercise.dart';
+//import 'package:formeo/domain/entities/exercise_model.dart';
+import 'package:formeo/domain/entities/exercise.dart';
 
 enum WorkoutItemType {
   warmup,
@@ -111,6 +111,23 @@ class WorkoutPlan extends Equatable {
     trainerId,
     createdAt,
   ];
+
+  static const Map<String, String> _typeLabels = {
+    'cardio': 'Кардио',
+    'strength': 'Силовая',
+    'functional': 'Функциональная',
+    'stretching': 'Растяжка',
+    'custom': 'Своя',
+    'general': 'Общая',
+  };
+
+  /// Тип плана по-русски для отображения в UI (AI-генератор пишет type
+  /// по-английски: 'strength', 'cardio' и т.д. — см. workout_generator_screen.dart).
+  String get typeLabel {
+    final t = type;
+    if (t == null || t.isEmpty) return 'Без типа';
+    return _typeLabels[t.toLowerCase()] ?? t;
+  }
 }
 
 class WorkoutDay {
@@ -131,8 +148,8 @@ class WorkoutDay {
       'dayOfWeek': dayOfWeek,
       'description': description,
       'restBetweenExercises': restBetweenExercises,
-    //  'items': items,
-    'items': items.map((e) => e.toJson()).toList(),
+      //  'items': items,
+      'items': items.map((e) => e.toJson()).toList(),
     };
   }
 
@@ -141,7 +158,7 @@ class WorkoutDay {
       dayOfWeek: json['dayOfWeek'],
       description: json['description'],
       restBetweenExercises: json['restBetweenExercises'],
-    //  items: json['items'],
+      //  items: json['items'],
       items: (json['items'] as List)
           .map((e) => WorkoutItem.fromJson(e))
           .toList(),

@@ -1,12 +1,32 @@
 import 'package:flutter/material.dart';
-import 'package:coachsly/domain/entities/quick_workout_plan.dart';
-import 'package:coachsly/core/constants/colors.dart';
+import 'package:get_it/get_it.dart';
+import 'package:go_router/go_router.dart';
+import 'package:formeo/domain/entities/quick_workout_plan.dart';
+import 'package:formeo/domain/entities/assigned_quick_plan.dart';
+import 'package:formeo/domain/repositories/workout_plan_repository.dart';
+import 'package:formeo/core/constants/colors.dart';
 
-class QuickWorkoutPlanDetailScreen extends StatelessWidget {
+class QuickWorkoutPlanDetailScreen extends StatefulWidget {
   final QuickWorkoutPlan plan;
 
-
   const QuickWorkoutPlanDetailScreen({super.key, required this.plan});
+
+  @override
+  State<QuickWorkoutPlanDetailScreen> createState() => _QuickWorkoutPlanDetailScreenState();
+}
+
+class _QuickWorkoutPlanDetailScreenState extends State<QuickWorkoutPlanDetailScreen> {
+  late Future<List<AssignedPlanClient>> _assignedClientsFuture;
+
+  QuickWorkoutPlan get plan => widget.plan;
+
+  @override
+  void initState() {
+    super.initState();
+    _assignedClientsFuture = plan.id == null
+        ? Future.value(<AssignedPlanClient>[])
+        : GetIt.instance<WorkoutPlanRepository>().getClientsForQuickPlan(plan.id!);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,6 +35,7 @@ class QuickWorkoutPlanDetailScreen extends StatelessWidget {
         title: Text(plan.name),
         backgroundColor: AppColors.colorBlue,
         foregroundColor: AppColors.colorWhite,
+        /*
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
@@ -23,8 +44,41 @@ class QuickWorkoutPlanDetailScreen extends StatelessWidget {
             },
           ),
         ],
+         */
       ),
       body: _buildContent(),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(16),
+        child: SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            icon: const Icon(Icons.person_add_alt_1),
+            label: const Text('Назначить клиенту'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.colorBlue,
+              foregroundColor: AppColors.colorWhite,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+            onPressed: plan.id == null
+                ? null
+                : () async {
+              final assigned = await context.pushNamed<bool>(
+                'assignQuickWorkoutPlan',
+                extra: plan,
+              );
+              // После успешного назначения обновляем список клиентов
+              // прямо на этом экране, не заставляя тренера возвращаться
+              // к списку программ и заходить в детали заново.
+              if (assigned == true && mounted) {
+                setState(() {
+                  _assignedClientsFuture = GetIt.instance<WorkoutPlanRepository>()
+                      .getClientsForQuickPlan(plan.id!);
+                });
+              }
+            },
+          ),
+        ),
+      ),
     );
   }
 
@@ -37,6 +91,8 @@ class QuickWorkoutPlanDetailScreen extends StatelessWidget {
           _buildHeaderSection(),
           const SizedBox(height: 24),
           _buildInfoSection(),
+          const SizedBox(height: 24),
+          _buildAssignedClientsSection(),
           const SizedBox(height: 24),
           _buildExercisesSection(),
         ],
@@ -76,7 +132,7 @@ class QuickWorkoutPlanDetailScreen extends StatelessWidget {
                   const SizedBox(height: 4),
                   if (plan.type != null && plan.type!.isNotEmpty)
                     Text(
-                      plan.type!,
+                      plan.typeLabel,
                       style: TextStyle(
                         fontSize: 16,
                         color: AppColors.colorGrey,
@@ -123,8 +179,8 @@ class QuickWorkoutPlanDetailScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            _infoTile('Тип тренировки', plan.type ?? 'Не указан'),
-            _infoTile('Длительность', '${plan.duration ?? 0} дней'),
+            _infoTile('Тип тренировки', plan.typeLabel),
+            _infoTile('Длительность', _durationLabel(plan.duration)),
             if (plan.schedule != null && plan.schedule!.isNotEmpty)
               _infoTile('Расписание', plan.schedule!),
             if (plan.selectedDays != null && plan.selectedDays!.isNotEmpty)
@@ -137,6 +193,90 @@ class QuickWorkoutPlanDetailScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildAssignedClientsSection() {
+    return FutureBuilder<List<AssignedPlanClient>>(
+      future: _assignedClientsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Card(
+            color: AppColors.colorLightBlue,
+            child: const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          );
+        }
+
+        final clients = snapshot.data ?? [];
+
+        return Card(
+          color: AppColors.colorLightBlue,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Назначена клиентам',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.colorWhite,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (clients.isEmpty)
+                  Row(
+                    children: [
+                      Icon(Icons.person_off_outlined, size: 20, color: AppColors.colorGrey),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Программа пока никому не назначена',
+                          style: TextStyle(fontSize: 14, color: AppColors.colorGrey),
+                        ),
+                      ),
+                    ],
+                  )
+                else
+                  ...clients.map((c) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 16,
+                          backgroundColor: AppColors.colorWhite,
+                          child: Text(
+                            c.clientName.isNotEmpty ? c.clientName[0].toUpperCase() : '?',
+                            style: TextStyle(
+                              color: AppColors.colorBlue,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            c.clientName.isNotEmpty ? c.clientName : 'Без имени',
+                            style: const TextStyle(fontSize: 14, color: AppColors.colorWhite),
+                          ),
+                        ),
+                        Text(
+                          _formatDate(c.startDate),
+                          style: TextStyle(fontSize: 12, color: AppColors.colorGrey),
+                        ),
+                      ],
+                    ),
+                  )),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -200,20 +340,19 @@ class QuickWorkoutPlanDetailScreen extends StatelessWidget {
 
     for (var dayData in days) {
       final dayOfWeek = dayData['dayOfWeek'] as int;
+      final rawLabel = dayData['dayLabel'] as String?;
+      final dayLabel = (rawLabel != null && rawLabel.trim().isNotEmpty) ? rawLabel : 'День ${dayOfWeek + 1}';
       final description = dayData['description'] as String? ?? '';
       final items = dayData['items'] as List;
 
-      dayWidgets.add(_buildParsedDayCard(dayOfWeek, description, items));
+      dayWidgets.add(_buildParsedDayCard(dayOfWeek, dayLabel, description, items));
     }
 
     return dayWidgets;
   }
 
-  Widget _buildParsedDayCard(int dayOfWeek, String description, List<dynamic> items) {
-    final dayNames = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
-    final shortDayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-    final dayName = dayOfWeek < dayNames.length ? dayNames[dayOfWeek] : 'День ${dayOfWeek + 1}';
-    final shortDayName = dayOfWeek < dayNames.length ? shortDayNames[dayOfWeek] : 'День ${dayOfWeek + 1}';
+  Widget _buildParsedDayCard(int dayOfWeek, String dayLabel, String description, List<dynamic> items) {
+    final dayName = dayLabel;
 
     // Подсчитываем общее количество упражнений в дне
     int totalExercises = 0;
@@ -236,7 +375,7 @@ class QuickWorkoutPlanDetailScreen extends StatelessWidget {
                   radius: 20,
                   backgroundColor: AppColors.colorWhite,
                   child: Text(
-                    '${shortDayName}',
+                    '${dayOfWeek + 1}',
                     style: TextStyle(
                       color: AppColors.colorBlue,
                       fontWeight: FontWeight.bold,
@@ -386,19 +525,14 @@ class QuickWorkoutPlanDetailScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Row(
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
                   children: [
                     _buildSetInfo('Подходы', workSets.toString()),
-                    const SizedBox(width: 12),
                     if (reps != null) _buildSetInfo('Повторения', reps.toString()),
-                    if (warmupSets > 0) ...[
-                      const SizedBox(width: 12),
-                      _buildSetInfo('Разминка', warmupSets.toString()),
-                    ],
-                    if (restSeconds > 0) ...[
-                      const SizedBox(width: 12),
-                      _buildSetInfo('Отдых', '${restSeconds}с'),
-                    ],
+                    if (warmupSets > 0) _buildSetInfo('Разминка', warmupSets.toString()),
+                    if (restSeconds > 0) _buildSetInfo('Отдых', '${restSeconds}с'),
                   ],
                 ),
                 if (note.isNotEmpty) ...[
@@ -441,10 +575,7 @@ class QuickWorkoutPlanDetailScreen extends StatelessWidget {
   }
 
   Widget _buildDayCard(int dayOfWeek, List<QuickPlanExercise> exercises) {
-    final dayNames = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
-    final shortDayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-    final dayName = shortDayNames[dayOfWeek];//dayOfWeek < shortDayNames.length ? shortDayNames[dayOfWeek] : 'Д${dayOfWeek + 1}';
-    print(dayOfWeek);
+    final dayName = exercises.first.displayDayLabel;
     return Card(
       color: AppColors.colorLightBlue,
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -459,7 +590,7 @@ class QuickWorkoutPlanDetailScreen extends StatelessWidget {
                   radius: 20,
                   backgroundColor: AppColors.colorWhite,
                   child: Text(
-                    '${dayName}',
+                    '${dayOfWeek + 1}',
                     style: TextStyle(
                       color: AppColors.colorBlue,
                       fontWeight: FontWeight.bold,
@@ -530,19 +661,16 @@ class QuickWorkoutPlanDetailScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Row(
+                    Wrap(
+                      spacing: 16,
+                      runSpacing: 8,
                       children: [
                         _buildSetInfo('Подходы', '${exercise.workSets}'),
-                        const SizedBox(width: 16),
                         _buildSetInfo('Повторения', '${exercise.reps}'),
-                        if (exercise.warmupSets > 0) ...[
-                          const SizedBox(width: 16),
+                        if (exercise.warmupSets > 0)
                           _buildSetInfo('Разминка', '${exercise.warmupSets}'),
-                        ],
-                        if (exercise.restSeconds > 0) ...[
-                          const SizedBox(width: 16),
+                        if (exercise.restSeconds > 0)
                           _buildSetInfo('Отдых', '${exercise.restSeconds}с'),
-                        ],
                       ],
                     ),
                     if (exercise.note.isNotEmpty) ...[
@@ -653,6 +781,19 @@ class QuickWorkoutPlanDetailScreen extends StatelessWidget {
 
   String _formatDate(DateTime date) {
     return '${date.day}.${date.month}.${date.year}';
+  }
+
+  /// duration хранится в днях — добавляем склонение день/дня/дней
+  /// (тот же алгоритм, что и в universal_card.dart).
+  String _durationLabel(int? duration) {
+    if (duration == null) return 'Не указана';
+    final mod10 = duration % 10;
+    final mod100 = duration % 100;
+    if (mod10 == 1 && mod100 != 11) return '$duration день';
+    if ([2, 3, 4].contains(mod10) && ![12, 13, 14].contains(mod100)) {
+      return '$duration дня';
+    }
+    return '$duration дней';
   }
 
   int _getTotalExercisesCount() {

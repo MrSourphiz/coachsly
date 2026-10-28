@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:get_it/get_it.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:table_calendar/table_calendar.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'firebase_options.dart';
 
 // настройки DI
 import 'di.dart';
@@ -13,55 +15,91 @@ import 'di.dart';
 // настройки router
 import 'router.dart';
 
+// splash
+import 'splash_wrapper.dart';
+
 //constants
-import 'package:coachsly/core/constants/colors.dart';
+import 'package:formeo/core/constants/colors.dart';
+import 'package:formeo/core/constants/supabase_constants.dart';
 
-// provider
-import 'package:coachsly/presentation/providers/user_provider.dart';
+// providers
+import 'package:formeo/presentation/providers/user_provider.dart';
+import 'package:formeo/presentation/providers/splash_progress_provider.dart';
 
-// auth
-import 'package:coachsly/domain/repositories/auth_repository.dart';
+// repositories
+import 'package:formeo/domain/repositories/auth_repository.dart';
+import 'package:formeo/domain/repositories/schedule_repository.dart';
+import 'package:formeo/domain/repositories/workout_plan_repository.dart';
+import 'package:formeo/domain/repositories/workout_generator_repository.dart';
+import 'package:formeo/domain/repositories/notifications_repository.dart';
+import 'package:formeo/domain/repositories/training_diary_repository.dart';
+import 'package:formeo/domain/repositories/client_repository.dart';
+import 'package:formeo/domain/repositories/exercises_repository.dart';
 
-// schedules
-import 'package:coachsly/domain/repositories/schedule_repository.dart';
-
-// workout plans
-import 'package:coachsly/domain/repositories/workout_plan_repository.dart';
-import 'package:coachsly/domain/repositories/workout_generator_repository.dart';
-
-// notifications
-import 'package:coachsly/domain/repositories/notifications_repository.dart';
-
-// training diary
-import 'package:coachsly/domain/repositories/training_diary_repository.dart';
-
-// client
-import 'package:coachsly/domain/repositories/client_repository.dart';
-
-//exercises
-import 'package:coachsly/domain/repositories/exercises_repository.dart';
+// providers
+import 'package:formeo/presentation/providers/notifications_provider.dart';
 
 // blocs
-import 'package:coachsly/presentation/blocs/auth_bloc.dart';
-import 'package:coachsly/presentation/blocs/workout_plan_bloc.dart';
-import 'package:coachsly/presentation/blocs/quick_workout_plan_bloc.dart';
-import 'package:coachsly/presentation/blocs/client_workout_plan_bloc.dart';
+import 'package:formeo/presentation/blocs/auth_bloc.dart';
+
+// push notifications
+import 'package:formeo/core/service/push_notification_service.dart';
+
+import 'package:timezone/data/latest.dart' as tz_data;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: "assets/.env");
-  await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL']!,
-    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
-  );
+
+  tz_data.initializeTimeZones();
+
+  // Проверяем что ключи переданы через --dart-define
+  SupabaseConstants.assertConfigured();
+
+  // При первом запуске после установки/переустановки чистим Secure Storage.
+  // FlutterSecureStorage на Android сохраняется между переустановками
+  // (хранится в Keystore), поэтому без этой очистки кэш роли от предыдущей
+  // установки попадает в checkAuthStatus и пользователь видит онбординг
+  // вместо экрана входа.
+  final prefs = await SharedPreferences.getInstance();
+  final isFirstRun = prefs.getBool('app_installed') ?? true;
+  if (isFirstRun) {
+    const storage = FlutterSecureStorage();
+    await storage.deleteAll();
+    await prefs.setBool('app_installed', false);
+  }
+
+  // Firebase и Supabase инициализируем параллельно
+  await Future.wait([
+    Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
+    Supabase.initialize(
+      url: SupabaseConstants.supabaseUrl,
+      anonKey: SupabaseConstants.supabaseAnonKey,
+      authOptions: const FlutterAuthClientOptions(
+        authFlowType: AuthFlowType.pkce,
+      ),
+    ),
+  ]);
+
+  // Фоновый обработчик пушей
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   setupDI();
-
   runApp(MyApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class MyApp extends StatefulWidget {
+  MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  // Создаём router ОДИН раз после setupDI() — не пересоздаём при rebuild.
+  // createRouter() безопасен здесь: setupDI() уже вызван в main().
+  late final GoRouter _router = createRouter();
 
   static const MaterialColor customSwatch = MaterialColor(
     0xFF172554,
@@ -83,176 +121,223 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider<SplashProgressProvider>(
+          create: (_) => SplashProgressProvider(),
+        ),
         ChangeNotifierProvider<UserProvider>(
           create: (_) => GetIt.I<UserProvider>(),
         ),
         RepositoryProvider<AuthRepository>(
-          create: (context) => GetIt.I<AuthRepository>(),
+          create: (_) => GetIt.I<AuthRepository>(),
         ),
         RepositoryProvider<ScheduleRepository>(
-          create: (context) => GetIt.I<ScheduleRepository>(),
+          create: (_) => GetIt.I<ScheduleRepository>(),
         ),
         RepositoryProvider<WorkoutPlanRepository>(
-          create: (context) => GetIt.I<WorkoutPlanRepository>(),
+          create: (_) => GetIt.I<WorkoutPlanRepository>(),
         ),
         RepositoryProvider<WorkoutGeneratorRepository>(
-          create: (context) => GetIt.I<WorkoutGeneratorRepository>(),
+          create: (_) => GetIt.I<WorkoutGeneratorRepository>(),
         ),
         RepositoryProvider<TrainingDiaryRepository>(
-          create: (context) => GetIt.I<TrainingDiaryRepository>(),
+          create: (_) => GetIt.I<TrainingDiaryRepository>(),
         ),
         RepositoryProvider<ClientRepository>(
-          create: (context) => GetIt.I<ClientRepository>(),
+          create: (_) => GetIt.I<ClientRepository>(),
         ),
         RepositoryProvider<NotificationsRepository>(
           create: (_) => GetIt.I<NotificationsRepository>(),
         ),
+        // NotificationsProvider зависит от UserProvider — создаётся автоматически
+        // когда пользователь авторизуется, и пересоздаётся при смене аккаунта.
+        // Размещён здесь (выше MaterialApp.router) — доступен на ВСЕХ роутах.
+        ChangeNotifierProxyProvider<UserProvider, NotificationsProvider?>(
+          create: (_) => null,
+          update: (_, userProvider, previous) {
+            final userId = userProvider.user?.id;
+
+            // FIX #2: если userId временно null (Supabase обновляет токен,
+            // перестройка дерева при resume) — НЕ уничтожаем провайдер.
+            // Возвращаем предыдущий экземпляр чтобы подписка и данные сохранились.
+            // Без этого фикса: previous.dispose() → _sub.cancel() → список пуст.
+            if (userId == null) return previous;
+
+            // Переиспользуем существующий если userId не изменился
+            if (previous != null && previous.trainerId == userId) {
+              return previous;
+            }
+
+            // Новый пользователь (смена аккаунта) — создаём новый провайдер
+            return NotificationsProvider(
+              trainerId: userId,
+              repository: GetIt.I<NotificationsRepository>(),
+            );
+          },
+        ),
         RepositoryProvider<ExercisesRepository>(
           create: (_) => GetIt.I<ExercisesRepository>(),
         ),
-        BlocProvider<WorkoutPlanBloc>(create: (context) => getIt<WorkoutPlanBloc>()),
-        BlocProvider<QuickWorkoutPlanBloc>(create: (context) => getIt<QuickWorkoutPlanBloc>()),
-        BlocProvider<ClientWorkoutPlanBloc>(create: (context) => getIt<ClientWorkoutPlanBloc>()),
+        // BlocProvider<WorkoutPlanBloc>(create: (_) => getIt<WorkoutPlanBloc>()), // временно отключено
+        // BlocProvider<QuickWorkoutPlanBloc>(create: (_) => getIt<QuickWorkoutPlanBloc>()), // временно отключено
+        // BlocProvider<ClientWorkoutPlanBloc>(create: (_) => getIt<ClientWorkoutPlanBloc>()), // временно отключено
       ],
-      child: BlocProvider(
-        create: (context) => GetIt.I<AuthBloc>()..add(CheckAuthStatusEvent()),
-        child: MaterialApp.router(
-          locale: const Locale('ru', 'RU'),
-          supportedLocales: const [
-            Locale('ru', 'RU'),
-          ],
-          localizationsDelegates: const [
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSwatch(
-              primarySwatch: customSwatch,
-              accentColor: AppColors.colorDarkRed, // Бордовый для акцентов
-              backgroundColor: AppColors.colorBlue, // Тёмно-синий
-            ).copyWith(
-                primary: AppColors.colorLightBlue,
-                secondary: AppColors.colorDarkRed, // Бордовый
-                surface: AppColors.colorWhite, // Мягкий белый
-                onSurface: AppColors.colorLightBlue,
-                outline: AppColors.colorGrey,
-            ),
-            scaffoldBackgroundColor: AppColors.colorBlue,
-            primarySwatch: customSwatch,
-            fontFamily: 'Roboto',
-            iconTheme: IconThemeData(color: AppColors.colorDarkRed),
-            appBarTheme: const AppBarTheme(
-              backgroundColor: AppColors.colorBlue,
-              foregroundColor: AppColors.colorWhite,
-              elevation: 0,
-            ),
-            elevatedButtonTheme: ElevatedButtonThemeData(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.colorDarkRed, // Бордовый
-                foregroundColor: AppColors.colorWhite, // Мягкий белый
-                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+      child: BlocProvider.value(
+        value: GetIt.I<AuthBloc>()..add(CheckAuthStatusEvent()),
+        child: Builder(
+          builder: (context) => SplashWrapper(
+            child: MaterialApp.router(
+              locale: const Locale('ru', 'RU'),
+              supportedLocales: const [
+                Locale('ru', 'RU'),
+              ],
+              localizationsDelegates: const [
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              theme: ThemeData(
+                colorScheme: ColorScheme.fromSwatch(
+                  primarySwatch: customSwatch,
+                  accentColor: AppColors.colorDarkRed,
+                  backgroundColor: AppColors.colorBlue,
+                ).copyWith(
+                  primary: AppColors.colorLightBlue,
+                  secondary: AppColors.colorDarkRed,
+                  surface: AppColors.colorWhite,
+                  onSurface: AppColors.colorBlue,
+                  outline: AppColors.colorGrey,
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                scaffoldBackgroundColor: AppColors.colorBlue,
+                primarySwatch: customSwatch,
+                fontFamily: 'Roboto',
+                iconTheme: const IconThemeData(color: AppColors.colorDarkRed),
+                appBarTheme: const AppBarTheme(
+                  backgroundColor: AppColors.colorBlue,
+                  foregroundColor: AppColors.colorWhite,
+                  elevation: 0,
+                ),
+                elevatedButtonTheme: ElevatedButtonThemeData(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.colorDarkRed,
+                    foregroundColor: AppColors.colorWhite,
+                    textStyle: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w600),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                  ),
+                ),
+                textButtonTheme: TextButtonThemeData(
+                  style: TextButton.styleFrom(
+                    backgroundColor: AppColors.colorDarkRed,
+                    foregroundColor: AppColors.colorWhite,
+                    textStyle: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.colorWhite),
+                  ),
+                ),
+                floatingActionButtonTheme:
+                const FloatingActionButtonThemeData(
+                  backgroundColor: AppColors.colorDarkRed,
+                  foregroundColor: AppColors.colorWhite,
+                ),
+                inputDecorationTheme: const InputDecorationTheme(
+                  filled: true,
+                  fillColor: AppColors.colorWhite,
+                  floatingLabelStyle: TextStyle(
+                    color: AppColors.colorDarkRed,
+                    backgroundColor: AppColors.colorBlue,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                    borderSide: BorderSide(color: AppColors.colorGrey),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                    borderSide: BorderSide(color: AppColors.colorGrey),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                    borderSide:
+                    BorderSide(color: AppColors.colorDarkRed, width: 2),
+                  ),
+                  labelStyle: TextStyle(color: AppColors.colorBlue),
+                  hintStyle: TextStyle(color: AppColors.colorGrey),
+                ),
+                textSelectionTheme: const TextSelectionThemeData(
+                  cursorColor: AppColors.colorDarkRed,
+                ),
+                textTheme: const TextTheme(
+                  headlineLarge: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.colorWhite,
+                  ),
+                  headlineMedium: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.colorWhite,
+                  ),
+                  bodyLarge: TextStyle(
+                    fontSize: 16,
+                    color: AppColors.colorBlue,
+                  ),
+                  bodyMedium: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.colorWhite,
+                  ),
+                  bodySmall: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.colorGrey,
+                  ),
+                  labelMedium: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.colorBlue,
+                  ),
+                ),
+                dialogTheme: DialogTheme(
+                  backgroundColor: AppColors.colorWhite,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  titleTextStyle: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.colorBlue,
+                  ),
+                  contentTextStyle: const TextStyle(
+                    fontSize: 16,
+                    color: AppColors.colorBlue,
+                  ),
+                ),
+                snackBarTheme: const SnackBarThemeData(
+                  backgroundColor: AppColors.colorDarkRed,
+                  contentTextStyle: TextStyle(color: AppColors.colorWhite),
+                  actionTextColor: AppColors.colorWhite,
+                ),
+                cardTheme: CardTheme(
+                  color: AppColors.colorWhite,
+                  shadowColor: AppColors.colorGrey,
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                listTileTheme: ListTileThemeData(
+                  tileColor: AppColors.colorWhite,
+                  textColor: AppColors.colorBlue,
+                  iconColor: AppColors.colorDarkRed,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
               ),
-            ),
-            textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(
-                backgroundColor: AppColors.colorDarkRed, // Бордовый
-                foregroundColor: AppColors.colorWhite, // Мягкий белый
-                textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color:AppColors.colorWhite),
-              ),
-            ),
-            floatingActionButtonTheme: const FloatingActionButtonThemeData(
-              backgroundColor: AppColors.colorDarkRed, // Бордовый
-              foregroundColor: AppColors.colorWhite, // Мягкий белый
-            ),
-            inputDecorationTheme: const InputDecorationTheme(
-              filled: true,
-              fillColor: AppColors.colorWhite, // Мягкий белый
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(12)),
-                borderSide: BorderSide(color: AppColors.colorGrey), // Серый
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(12)),
-                borderSide: BorderSide(color: AppColors.colorGrey), // Серый
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(12)),
-                borderSide: BorderSide(color: AppColors.colorDarkRed, width: 2), // Бордовый
-              ),
-              labelStyle: TextStyle(color: AppColors.colorGrey), // Серый
-              hintStyle: TextStyle(color: AppColors.colorGrey), // Серый
-            ),
-            textTheme: const TextTheme(
-              headlineLarge: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: AppColors.colorWhite, // Мягкий белый
-              ),
-              headlineMedium: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w600,
-                color: AppColors.colorWhite, // Мягкий белый
-              ),
-              bodyLarge: TextStyle(
-                fontSize: 16,
-                color: AppColors.colorWhite, // Мягкий белый
-              ),
-              bodyMedium: TextStyle(
-                fontSize: 14,
-                color: AppColors.colorWhite, // Мягкий белый
-              ),
-              bodySmall: TextStyle(
-                fontSize: 12,
-                color: AppColors.colorGrey, // Серый
-              ),
-              labelMedium: TextStyle(
-                fontSize: 14,
-                color: AppColors.colorBlue, // Мягкий белый
-              ),
-            ),
-            dialogTheme: DialogTheme(
-              backgroundColor: AppColors.colorWhite, // Мягкий белый
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              titleTextStyle: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppColors.colorBlue, // Тёмно-синий
-              ),
-              contentTextStyle: const TextStyle(
-                fontSize: 16,
-                color: AppColors.colorBlue, // Тёмно-синий
-              ),
-            ),
-            snackBarTheme: SnackBarThemeData(
-              backgroundColor: AppColors.colorDarkRed, // Бордовый
-              contentTextStyle: const TextStyle(color: AppColors.colorWhite), // Мягкий белый
-              actionTextColor: AppColors.colorWhite, // Мягкий белый
-            ),
-            cardTheme: CardTheme(
-              color: AppColors.colorWhite, // Мягкий белый
-              shadowColor: AppColors.colorGrey, // Серый
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            listTileTheme: ListTileThemeData(
-              tileColor: AppColors.colorWhite, // Мягкий белый
-              textColor: AppColors.colorBlue, // Тёмно-синий
-              iconColor: AppColors.colorDarkRed, // Бордовый
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+              routerConfig: _router,
             ),
           ),
-          routerConfig: router,
         ),
       ),
     );
